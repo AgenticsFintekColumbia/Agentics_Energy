@@ -55,7 +55,7 @@ def solve_daily_milp(
     cons = [
         soc >= soc_lo, soc <= soc_hi,
         soc[0] == soc0, 
-        # soc[T] >= soc_tgt
+        soc[T] >= soc_tgt
     ]
     for t in range(T):
         cons += [
@@ -95,6 +95,16 @@ def solve_daily_milp(
             prob.solve(**solver_opts)  # may fail if default solver isn't MILP-capable
     except Exception as e:
         return SolveResponse(status="error", message=str(e))
+    # can you write the decision list as well here in a simple for loop no need to do comprehension
+
+    decision_list = []
+    for t in range(T):
+        if y_c.value[t] == 1:
+            decision_list.append(y_c.value[t])
+        elif y_d.value[t] == 1:
+            decision_list.append(-1*y_d.value[t])
+        else:
+            decision_list.append(0)
 
     return SolveResponse(
         status=prob.status,
@@ -103,7 +113,9 @@ def solve_daily_milp(
         discharge_kw=d.value.tolist() if d.value is not None else None,
         import_kw=imp.value.tolist() if imp.value is not None else None,
         export_kw=(exp.value.tolist() if (day.allow_export and exp is not None and exp.value is not None) else None),
-        soc=soc.value.tolist() if soc.value is not None else None
+        soc=soc.value.tolist() if soc.value is not None else None,
+        decision=decision_list,
+        confidence=[ max(y_c.value[t], y_d.value[t], 1 - y_c.value[t] - y_d.value[t]) for t in range(T)] if y_c.value is not None and y_d.value is not None else None,
     )
 
 

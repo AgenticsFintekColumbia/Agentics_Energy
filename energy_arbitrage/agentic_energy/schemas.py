@@ -30,6 +30,7 @@ class EnergyDataRecord(BaseModel):
     consumption: Optional[float] = Field(None, description="Energy consumption")
     year: Optional[int] = Field(None, description="Year extracted from timestamp")
     region: Optional[str] = Field(None, description="Energy market region")
+    decisions: Optional[float] = Field(None, description = "Decision taken at each time step by the battery - charge (+1), discharge (-1), idle (0)" )
 
 class BatteryParams(BaseModel):
     capacity_kwh: float = Field(100.0, gt=0, description="Battery capacity in kWh")      # C
@@ -72,7 +73,8 @@ class SolveResponse(BaseModel):
     import_kw: Optional[List[float]] = Field(None, description="Grid import schedule in kW")
     export_kw: Optional[List[float]] = Field(None, description="Grid export schedule in kW")
     soc: Optional[List[float]] = Field(None, description="State of Charge (SoC) over time")
-
+    decision: Optional[List[float]] = Field(None, description="Decision taken at each time step by the battery - charge (+1), discharge (-1), idle (0)")
+    confidence: Optional[List[float]] = Field(None, description="Confidence level of each decision (0 to 1)")
 
 # New schemas for forecasting
 class ForecastRecord(BaseModel):
