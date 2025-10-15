@@ -12,7 +12,7 @@ load_dotenv(find_dotenv())
 
 from agentics import Agentics as AG
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Union
+from typing import Optional, Dict, List, Union, Tuple
 import pandas as pd
 from datetime import datetime
 from .schemas import EnergyDataRecord, MetricStats, SummaryStats, DateRange
@@ -74,41 +74,68 @@ class EnergyDataLoader:
         self.data = energy_data
         return self.data
 
-    async def get_filtered_data(self, start_date: str = None, end_date: str = None, 
-                                price_range: tuple = None) -> AG:
+    async def get_filtered_data(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        price_range: Optional[Tuple[float, float]] = None,
+    ) -> AG:
         """
-        Filter region data asynchronously using Agentics areduce (no amap needed).
+        Efficiently filter region data using vectorized masking inside areduce.
+        Assumes each state has attributes: timestamps, prices.
         """
+
+        # ---- Precompute bounds once ----
+        has_date_filter = bool(start_date or end_date)
+        start_day = np.datetime64(pd.to_datetime(start_date).date()) if start_date else None
+        end_day   = np.datetime64(pd.to_datetime(end_date).date())   if end_date   else None
+
+        has_price_filter = bool(price_range)
+        if has_price_filter:
+            min_price, max_price = price_range
 
         async def _filter_reduce(states: list):
-            """Reduce function: keep only states that meet date/price filters."""
-            filtered = []
-            for state in states:
-                try:
-                    # --- Date filter ---
-                    if start_date or end_date:
-                        record_date = pd.to_datetime(state.timestamps).date()
-                        if start_date and record_date < pd.to_datetime(start_date).date():
-                            continue
-                        if end_date and record_date > pd.to_datetime(end_date).date():
-                            continue
+            """Vectorized reduce over a chunk of states."""
+            if not states:
+                return []
 
-                    # --- Price filter ---
-                    if price_range and state.prices is not None:
-                        min_price, max_price = price_range
-                        if state.prices < min_price or state.prices > max_price:
-                            continue
+            # Extract arrays (avoid attribute lookups in loops)
+            # Timestamps -> normalized to day precision for fast comparisons
+            ts_arr = np.array([s.timestamps for s in states], dtype='datetime64[ns]')
+            day_arr = ts_arr.astype('datetime64[D]')  # ~50x cheaper than per-item to_datetime
 
-                    filtered.append(state)
-                except Exception:
-                    continue  # skip invalid records
+            # Prices (allow None/NaN -> mask them out if price filter is on)
+            if has_price_filter:
+                # object->float robust cast: coerce non-numeric to NaN
+                pr_arr = pd.to_numeric([getattr(s, "prices", np.nan) for s in states], errors="coerce").to_numpy()
+            else:
+                pr_arr = None
 
-            return filtered
+            # Build mask
+            mask = np.ones(len(states), dtype=bool)
 
-        # apply areduce directly to the dataset
+            if has_date_filter:
+                if start_day is not None:
+                    mask &= (day_arr >= start_day)
+                if end_day is not None:
+                    mask &= (day_arr <= end_day)
+
+            if has_price_filter:
+                # Keep only rows with valid numeric prices inside range
+                mask &= np.isfinite(pr_arr)
+                mask &= (pr_arr >= min_price) & (pr_arr <= max_price)
+
+            # Apply mask
+            if mask.all():
+                return states
+            if not mask.any():
+                return []
+            idx = np.nonzero(mask)[0]
+            return [states[i] for i in idx]
+
+        # Perform the filtered reduction across the dataset
         filtered_states = await self.data.areduce(_filter_reduce)
 
-        # construct a new Agentics group
         return AG(atype=EnergyDataRecord, states=filtered_states)
 
     @staticmethod
