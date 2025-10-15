@@ -49,11 +49,15 @@ class DayInputs(BaseModel):
     prices_sell: Optional[List[float]] = None    # if None and export allowed, equals buy
     allow_export: bool = False
     dt_hours: float = 1.0
+    prices_buy_forecast: Optional[List[float]] = None
+    demand_kw_forecast:  Optional[List[float]] = None
+    prices_sell_forecast: Optional[List[float]] = None
+
 
 class SolveRequest(BaseModel):
     battery: BatteryParams
     day: DayInputs
-    solver: Optional[str] = None                 # "CBC","GLPK_MI","SCIP","GUROBI","CPLEX"
+    solver: Optional[str] = None                 # "MILP","HEURISTIC","RL","RL_TRAIN"
     solver_opts: Optional[Dict] = None
 
 class SolveFromRecordsRequest(BaseModel):
