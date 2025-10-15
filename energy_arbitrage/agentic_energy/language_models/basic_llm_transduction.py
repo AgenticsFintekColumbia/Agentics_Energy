@@ -57,10 +57,44 @@ async def client_calling(data_records: DayInputs = None, battery_details: Batter
             # }
         )
 
-
+    # TODO: work with prompt template: instructions + solverequest data
         source = AG(
             atype = SolveRequest,
-            states = [req]
+            states = [req],
+            prompt_template = '''
+                You are solving a daily battery scheduling optimization problem using Mixed Integer Linear Programming (MILP). 
+                You are given a request object containing:
+                - Hourly energy prices for buying and selling electricity.
+                - Hourly electricity demand from a building or system.
+                - Battery technical parameters including capacity_kwh: {battery_details.capacity_kwh}, charge/discharge power limits cmax_kw: {battery_details.cmax_kw}, dmax_kw: {battery_details.dmax_kw}, efficiencies - eta_c: {battery_details.eta_c}, eta_d: {battery_details.eta_d}, and state-of-charge soc_max: {battery_details.soc_max}, soc_min: {battery_details.soc_min} bounds.
+
+                Your task is to:
+                1. Determine the hourly charge , discharge, grid import, grid export, and SoC schedule for 24 hours.
+                2. Minimize the total operational cost:
+                    total_cost = Σ_t [ (price_buy[t] {req.day.prices_buy} * import_kw[t] - price_sell[t] {req.day.prices_sell} * export_kw[t]) * dt_hours {req.day.dt_hours} ]
+                3. Ensure all constraints are satisfied:
+                - SoC at time t = SoC at time t-1 + (eta_c {battery_details.eta_c} * charge_kw[t]  - discharge_kw[t] / eta_d {battery_details.eta_d}) * dt_hours {req.day.dt_hours} / capacity_kwh {battery_details.capacity_kwh}
+                - soc_min {battery_details.soc_min} ≤ SoC_t ≤ soc_max {battery_details.soc_max} for all t
+                - 0 ≤ charge_kw[t]  ≤ cmax_kw {battery_details.cmax_kw}
+                - 0 ≤ discharge_kw[t] ≤ dmax_kw {battery_details.dmax_kw}
+                - import_kw[t] = max(0, demand_kw[t] + charge_kw[t]  - discharge_kw[t] - export_kw[t])
+                - export_kw[t] ≥ 0 only if allow_export {req.day.allow_export} = True
+                - initialize the soc variable at soc_init {battery_details.soc_init} at t=0, where t is the first hour of the day.
+                - The battery SoC at the end of the day should reach soc_target {battery_details.soc_target} (if provided), else soc_init {battery_details.soc_init}.
+                - Assume the battery can either charge  or discharge or stay idle in a given hour, not both. So try to schedule the battery in such a way.
+
+                4. Output a JSON-compatible SolveResponse object with:
+                - status: "success" or "failure"
+                - message: optional diagnostic
+                - objective_cost: the minimized total cost
+                - charge_kw: list of hourly charge values (kW)
+                - discharge_kw: list of hourly discharge values (kW)
+                - import_kw: list of hourly grid import values (kW)
+                - export_kw: list of hourly grid export values (kW)
+                - soc: list of hourly state of charge values (fraction of capacity between 0 and 1)
+
+                Make sure the final schedule satisfies all physical constraints and the objective function is minimized.
+            ''',
         )
         target = AG(
             atype=SolveResponse,
@@ -73,6 +107,7 @@ async def client_calling(data_records: DayInputs = None, battery_details: Batter
             # and maximize profit by selling the excess as grid export by taking advantage of the price variation.'''
 
             # TODO:may be feed data directly to the instructions
+
 
             instructions=f'''
                 You are solving a daily battery scheduling optimization problem using Mixed Integer Linear Programming (MILP). 
