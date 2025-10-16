@@ -7,7 +7,7 @@ from .schemas import (
 
 # Re-export data loader utilities
 from .data_loader import (
-    EnergyDataLoader
+    EnergyDataLoader, BatteryDataLoader
 )
 
 from .forecast_engine import (

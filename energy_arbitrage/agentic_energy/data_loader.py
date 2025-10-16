@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, List, Union, Tuple, Literal
 import pandas as pd
 from datetime import datetime
-from .schemas import EnergyDataRecord, MetricStats, SummaryStats, DateRange
+from .schemas import EnergyDataRecord, MetricStats, SummaryStats, DateRange, BatteryParams
 import numpy as np
 
 
@@ -278,6 +278,76 @@ class EnergyDataLoader:
             return AG(atype=MetricStats, states=[getattr(stats_obj, column)])
 
         return AG(atype=SummaryStats, states=[stats_obj])
+
+
+class BatteryDataLoader:
+    """
+    Battery Data Loader — computes battery parameters from load statistics.
+    """
+
+    def __init__(self, 
+            load_stats: Dict[str, float], 
+            duration_hours: float = 4.0,
+            soc_init=0.5,
+            soc_min=0.0,
+            soc_max=1.0,
+            eta_c=0.95,
+            eta_d=0.95,
+            soc_target=0.5
+        ):
+        """
+        Args:
+            load_stats (dict): Must contain 'p25' and 'p75' in MW.
+            duration_hours (float): Hours battery should sustain IQR deviation.
+        """
+        if 'p25' not in load_stats or 'p75' not in load_stats:
+            raise ValueError("load_stats must include 'p25' and 'p75' values in MW.")
+        self.load_stats = load_stats
+        self.duration_hours = duration_hours
+        self.soc_init = soc_init
+        self.soc_min = soc_min
+        self.soc_max = soc_max
+        self.eta_c = eta_c
+        self.eta_d = eta_d
+        self.soc_target = soc_target
+
+    def compute_battery_params(self) -> BatteryParams:
+        """
+        Compute capacity and charge/discharge limits from IQR of load statistics.
+        Converts MW → kW and MWh → kWh internally.
+        """
+        p25, p75 = self.load_stats['p25'], self.load_stats['p75']
+
+        # Interquartile load deviation
+        iqr_range_kw = p75 - p25
+        capacity_kwh = iqr_range_kw * self.duration_hours
+        cmax_kw = capacity_kwh / self.duration_hours
+        dmax_kw = cmax_kw
+
+        return BatteryParams(
+            capacity_kwh=round(capacity_kwh, 2),
+            cmax_kw=round(cmax_kw, 2),
+            dmax_kw=round(dmax_kw, 2),
+            soc_init=self.soc_init,
+            soc_min=self.soc_min,
+            soc_max=self.soc_max,
+            eta_c=self.eta_c,
+            eta_d=self.eta_d,
+            soc_target=self.soc_target  
+        )
+
+    def summary(self) -> Dict[str, float]:
+        """Return computed specs as readable summary."""
+        params = self.compute_battery_params()
+        return {
+            "Capacity (kWh)": params.capacity_kwh,
+            "Charge Power (kW)": params.cmax_kw,
+            "Discharge Power (kW)": params.dmax_kw,
+            "Efficiency (Charge/Discharge)": (params.eta_c, params.eta_d),
+            "Duration (hours)": self.duration_hours
+        }
+
+
     
     # async def get_summary_stats_from_ag(ag_data: AG, column: Optional[str] = None) -> SummaryStats | Dict:
     #     """
