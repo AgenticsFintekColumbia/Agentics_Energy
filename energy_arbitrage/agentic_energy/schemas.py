@@ -133,10 +133,20 @@ class ForecastResult(BaseModel):
 #     prices: Optional[MetricStats]
 #     consumption: Optional[MetricStats]
 
-# class EnergyDataRecord(BaseModel):
-#     """Base energy data record with common fields across all regions"""
-#     timestamps: str = Field(description="Timestamp in ISO format")
-#     prices: Optional[float] = Field(None, description="Energy price at timestamp")
-#     consumption: Optional[float] = Field(None, description="Energy consumption")
-#     year: Optional[int] = Field(None, description="Year extracted from timestamp")
-#     region: Optional[str] = Field(None, description="Energy market region")
+# Reasoning schemas for decision explanation
+class ReasoningRequest(BaseModel):
+    """Input schema for the reasoning system"""
+    solve_request: SolveRequest = Field(..., description="Original solve request with battery parameters and inputs")
+    solve_response: SolveResponse = Field(..., description="Solver response containing decisions and results")
+    timestamp_index: int = Field(..., description="Index of the decision to explain")
+    context_window: int = Field(default=6, description="Number of timesteps before/after to consider for context")
+
+class ReasoningResponse(BaseModel):
+    """Output schema containing the reasoning explanation"""
+    explanation: str = Field(..., description="Detailed natural language explanation of the decision")
+    key_factors: List[str] = Field(default_factory=list, description="Key factors that influenced the decision")
+    confidence: float = Field(..., ge=0, le=1, description="Confidence in the explanation (0-1)")
+    supporting_data: Dict[str, float] = Field(
+        default_factory=dict,
+        description="Relevant numerical data supporting the explanation (e.g., price_delta, soc_margin)"
+    )

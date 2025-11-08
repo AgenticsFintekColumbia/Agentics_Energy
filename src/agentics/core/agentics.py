@@ -563,7 +563,7 @@ class AG(BaseModel, Generic[T]):
             )
             transduced_results = await pt.execute(
                 *input_prompts,
-                description=f"Transducing {self.__name__} << {"AG[str]" if not isinstance(other, AG) else other.__name__}",
+                description=f"Transducing {self.__name__} << {'AG[str]' if not isinstance(other, AG) else other.__name__}",
                 transient_pbar=self.transient_pbar
             )
         except Exception as e:
