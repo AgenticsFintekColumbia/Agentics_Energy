@@ -56,12 +56,12 @@ async def main():
             # Create optimization request
             req = SolveRequest(
                 battery=BatteryParams(
-                    capacity_kwh=20.0, soc_init=0.5, soc_min=0.10, soc_max=0.90,
-                    cmax_kw=6.0, dmax_kw=6.0, eta_c=0.95, eta_d=0.95, soc_target=0.5
+                    capacity_MWh=20.0, soc_init=0.5, soc_min=0.10, soc_max=0.90,
+                    cmax_MW=6.0, dmax_MW=6.0, eta_c=0.95, eta_d=0.95, soc_target=0.5
                 ),
                 day=DayInputs(
                     prices_buy=[0.12]*6 + [0.15]*6 + [0.22]*6 + [0.16]*6,
-                    demand_kw=[0.9]*24, allow_export=False, dt_hours=1.0
+                    demand_MW=[0.9]*24, allow_export=False, dt_hours=1.0
                 ),
                 solver=None, solver_opts=None
             )
@@ -92,11 +92,11 @@ async def main():
                 print(f"📈 Status: {res.status}")
                 print(f"💰 Objective cost: ${res.objective_cost:.4f}")
                 
-                if res.charge_kw and res.discharge_kw:
-                    total_charge = sum(res.charge_kw)
-                    total_discharge = sum(res.discharge_kw)
-                    print(f"🔋 Total charging: {total_charge:.2f} kWh")
-                    print(f"⚡ Total discharging: {total_discharge:.2f} kWh")
+                if res.charge_MW and res.discharge_MW:
+                    total_charge = sum(res.charge_MW)
+                    total_discharge = sum(res.discharge_MW)
+                    print(f"🔋 Total charging: {total_charge:.2f} MWh")
+                    print(f"⚡ Total discharging: {total_discharge:.2f} MWh")
                     
             except Exception as parse_error:
                 print(f"❌ Error parsing response: {parse_error}")

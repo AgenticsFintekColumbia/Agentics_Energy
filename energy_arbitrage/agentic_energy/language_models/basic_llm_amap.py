@@ -38,7 +38,7 @@ async def llm_solve_from_records(args: SolveFromRecordsRequest) -> SolveResponse
     prices, demand = records_to_arrays(args.records)
     day = DayInputs(
         prices_buy=prices,
-        demand_kw=demand,
+        demand_MW=demand,
         prices_sell=prices,
         allow_export=args.allow_export,
         dt_hours=args.dt_hours
@@ -105,7 +105,7 @@ async def solve_daily_llm(
         print("Returning fallback response with naive strategy...")
         
         # Calculate naive solution (just import everything)
-        naive_cost = sum(request.day.prices_buy[t] * request.day.demand_kw[t] * request.day.dt_hours
+        naive_cost = sum(request.day.prices_buy[t] * request.day.demand_MW[t] * request.day.dt_hours
                         for t in range(len(request.day.prices_buy)))
 
         # Return a fallback error response
@@ -113,10 +113,10 @@ async def solve_daily_llm(
             status="error",
             message=f"LLM optimization failed: {str(e)}. Returning naive solution (no battery usage). Try checking your API key or model configuration.",
             objective_cost=naive_cost,
-            charge_kw=[0.0] * len(request.day.prices_buy),
-            discharge_kw=[0.0] * len(request.day.prices_buy),
-            import_kw=request.day.demand_kw,
-            export_kw=[0.0] * len(request.day.prices_buy) if request.day.allow_export else None,
+            charge_MW=[0.0] * len(request.day.prices_buy),
+            discharge_MW=[0.0] * len(request.day.prices_buy),
+            import_MW=request.day.demand_MW,
+            export_MW=[0.0] * len(request.day.prices_buy) if request.day.allow_export else None,
             soc=[request.battery.soc_init] * (len(request.day.prices_buy) + 1),
             decision=[0] * len(request.day.prices_buy),
         )
@@ -140,14 +140,14 @@ def _build_optimization_instructions(
     T = len(day_inputs.prices_buy)
 
     p_buy_actual = np.asarray(day_inputs.prices_buy, dtype=float)
-    demand_actual  = np.asarray(day_inputs.demand_kw, dtype=float)
+    demand_actual  = np.asarray(day_inputs.demand_MW, dtype=float)
     if day_inputs.allow_export:
         p_sell_actual = np.asarray(day_inputs.prices_sell if day_inputs.prices_sell is not None else day_inputs.prices_buy, dtype=float)
     else:
         p_sell_actual = None
 
     p_buy_forecast = np.asarray(day_inputs.prices_buy_forecast, dtype=float)
-    demand_forecast = np.asarray(day_inputs.demand_kw_forecast, dtype=float)
+    demand_forecast = np.asarray(day_inputs.demand_MW_forecast, dtype=float)
     if day_inputs.allow_export:
         p_sell_forecast = np.asarray(day_inputs.prices_sell_forecast if day_inputs.prices_sell_forecast is not None else day_inputs.prices_buy_forecast, dtype=float)
     else:
@@ -173,8 +173,8 @@ def _build_optimization_instructions(
             - Realized demand: {demand_actual}  (array of length T)
 
         BATTERY PARAMETERS:
-            - capacity_kwh: {battery.capacity_kwh}
-            - charge/discharge limits: cmax_kw={battery.cmax_kw}, dmax_kw={battery.dmax_kw}
+            - capacity_MWh: {battery.capacity_MWh}
+            - charge/discharge limits: cmax_MW={battery.cmax_MW}, dmax_MW={battery.dmax_MW}
             - efficiencies: eta_c={battery.eta_c}, eta_d={battery.eta_d}
             - SoC bounds: {battery.soc_min} ≤ SoC ≤ {battery.soc_max}
             - initial SoC: soc_init={battery.soc_init}
@@ -190,27 +190,26 @@ def _build_optimization_instructions(
         ------------------------------------------------------------
         Use forecasted information only (p_buy_forecast, p_sell_forecast, demand_forecast) to determine the following hourly decision variables:
 
-            charge_kw[t], discharge_kw[t], import_kw[t], export_kw[t], soc[t]
+            charge_MW[t], discharge_MW[t], import_MW[t], export_MW[t], soc[t]
         
         for every time t in {0} ≤ t < {T}
 
         Subject to constraints for all t:
             - SoC dynamics:
-                SoC[t+1] = SoC[t] + ({battery.eta_c} * charge_kw[t] - discharge_kw[t] / {battery.eta_d}) * {day_inputs.dt_hours} / {battery.capacity_kwh}    
+                SoC[t+1] = SoC[t] + ({battery.eta_c} * charge_MW[t] - discharge_MW[t] / {battery.eta_d}) * {day_inputs.dt_hours} / {battery.capacity_MWh}    
             - SoC bounds: {battery.soc_min} ≤ SoC[t] ≤ {battery.soc_max} for all t
             - Power limits: 
-                0 ≤ charge_kw[t] ≤ {battery.cmax_kw}
-                0 ≤ discharge_kw[t] ≤ {battery.dmax_kw}
+                0 <= charge_MW[t] <= {battery.cmax_MW}
+                0 <= discharge_MW[t] <= {battery.dmax_MW}
             - Energy balance:
-                import_kw[t] - export_kw[t] = demand_actual[t] + charge_kw[t] - discharge_kw[t]
-            - Export constraint: export_kw[t] ≥ 0 only if allow_export = {day_inputs.allow_export}
+                import_MW[t] - export_MW[t] = demand_actual[t] + charge_MW[t] - discharge_MW[t]
+            - Export constraint: export_MW[t] >= 0 only if allow_export = {day_inputs.allow_export}
             - Initial condition: SoC[0] = {battery.soc_init}
-            - End condition: SoC[T] ≥ {battery.soc_target}
             - No simultaneous charge/discharge: The battery can either charge OR discharge OR stay idle in a given hour, not both.
-            This means: NOT(charge_kw[t] > 0 AND discharge_kw[t] > 0)
+            This means: NOT(charge_MW[t] > 0 AND discharge_MW[t] > 0)
 
         Forecast-based objective to minimize:
-            forecast_cost = Σ_t [ (p_buy_forecast[t] * import_kw[t] - p_sell_forecast[t] * export_kw[t]) * {day_inputs.dt_hours} ]
+            forecast_cost = Σ_t [ (p_buy_forecast[t] * import_MW[t] - p_sell_forecast[t] * export_MW[t]) * {day_inputs.dt_hours} ]
 
         Decision logic:
             - Ensure SoC and power limits are respected
@@ -226,7 +225,7 @@ def _build_optimization_instructions(
         apply them to actual data ({p_buy_actual, p_sell_actual, demand_actual}) to compute realized cost.
 
         Realized cost:
-            realized_cost = Σ_t [ (p_buy_actual[t] * import_kw[t] - p_sell_actual[t] * export_kw[t]) * {day_inputs.dt_hours} ]
+            realized_cost = Σ_t [ (p_buy_actual[t] * import_MW[t] - p_sell_actual[t] * export_MW[t]) * {day_inputs.dt_hours} ]
 
         ------------------------------------------------------------
         OUTPUT (SolveResponse)
@@ -235,10 +234,10 @@ def _build_optimization_instructions(
             - status: "success" or "failure"
             - message:  Brief explanation of your optimization strategy (2-3 sentences)
             - objective_cost: realized_cost
-            - charge_kw: list of {T} hourly charge power values, note that these values are capped by the battery's maximum charging power and at a time it can be either charging or discharging or idle.
-            - discharge_kw: list of {T} hourly discharge power values, note that these values are capped by the battery's maximum discharging power and at a time it can be either charging or discharging or idle.
-            - import_kw: list of {T} hourly grid import values and at a time it can be either importing from the grid or exporting to the grid and not both, but satisfying the demand and battery charge cum discharge power.
-            - export_kw: list of {T} hourly grid export values and at a time it can be either importing from the grid or exporting to the grid and not both, but satisfying the demand and battery charge cum discharge power.
+            - charge_MW: list of {T} hourly charge power values, note that these values are capped by the battery's maximum charging power and at a time it can be either charging or discharging or idle.
+            - discharge_MW: list of {T} hourly discharge power values, note that these values are capped by the battery's maximum discharging power and at a time it can be either charging or discharging or idle.
+            - import_MW: list of {T} hourly grid import values and at a time it can be either importing from the grid or exporting to the grid and not both, but satisfying the demand and battery charge cum discharge power.
+            - export_MW: list of {T} hourly grid export values and at a time it can be either importing from the grid or exporting to the grid and not both, but satisfying the demand and battery charge cum discharge power.
             - soc: list of {T+1} SoC fractions (0–1) which is a fraction value of the battery capacity.
             - decision: list of {T} values (+1=charge, -1=discharge, 0=idle)
 
@@ -368,10 +367,10 @@ def _build_optimization_instructions(
 #             status="error",
 #             message=f"LLM optimization failed: {str(e)}. Please try again or adjust parameters.",
 #             objective_cost=0.0,
-#             charge_kw=[0.0] * len(day_inputs.prices_buy),
-#             discharge_kw=[0.0] * len(day_inputs.prices_buy),
-#             import_kw=day_inputs.demand_kw,
-#             export_kw=[0.0] * len(day_inputs.prices_buy) if day_inputs.allow_export else None,
+#             charge_MW=[0.0] * len(day_inputs.prices_buy),
+#             discharge_MW=[0.0] * len(day_inputs.prices_buy),
+#             import_MW=day_inputs.demand_MW,
+#             export_MW=[0.0] * len(day_inputs.prices_buy) if day_inputs.allow_export else None,
 #             soc=[request.battery.soc_init] * (len(day_inputs.prices_buy) + 1),
 #             data_source=metadata["data_source"]
 #         )
@@ -394,17 +393,17 @@ def _build_optimization_instructions(
     
 #     T = len(day_inputs.prices_buy)
 #     prices = day_inputs.prices_buy
-#     demand = day_inputs.demand_kw
+#     demand = day_inputs.demand_MW
     
 #     # Calculate statistics
 #     price_mean = sum(prices) / len(prices)
 #     price_min, price_max = min(prices), max(prices)
     
 #     # Generate simple heuristic solution as example/baseline
-#     charge_kw = []
-#     discharge_kw = []
-#     import_kw = []
-#     export_kw = []
+#     charge_MW = []
+#     discharge_MW = []
+#     import_MW = []
+#     export_MW = []
 #     soc = [battery.soc_init]
 #     decision = []
     
@@ -412,36 +411,36 @@ def _build_optimization_instructions(
 #         # Simple heuristic: charge when price < mean, discharge when price > mean
 #         if prices[t] < price_mean * 0.85 and soc[-1] < battery.soc_max - 0.1:
 #             # Charge
-#             charge = min(battery.cmax_kw, (battery.soc_max - soc[-1]) * battery.capacity_kwh / day_inputs.dt_hours)
-#             charge_kw.append(charge)
-#             discharge_kw.append(0.0)
-#             import_kw.append(demand[t] + charge)
-#             export_kw.append(0.0)
+#             charge = min(battery.cmax_MW, (battery.soc_max - soc[-1]) * battery.capacity_MWh / day_inputs.dt_hours)
+#             charge_MW.append(charge)
+#             discharge_MW.append(0.0)
+#             import_MW.append(demand[t] + charge)
+#             export_MW.append(0.0)
 #             decision.append(1)
-#             new_soc = soc[-1] + (battery.eta_c * charge * day_inputs.dt_hours) / battery.capacity_kwh
+#             new_soc = soc[-1] + (battery.eta_c * charge * day_inputs.dt_hours) / battery.capacity_MWh
 #         elif prices[t] > price_mean * 1.15 and soc[-1] > battery.soc_min + 0.1:
 #             # Discharge
-#             discharge = min(battery.dmax_kw, (soc[-1] - battery.soc_min) * battery.capacity_kwh / day_inputs.dt_hours)
+#             discharge = min(battery.dmax_MW, (soc[-1] - battery.soc_min) * battery.capacity_MWh / day_inputs.dt_hours)
 #             discharge = min(discharge, demand[t])  # Don't discharge more than needed
-#             charge_kw.append(0.0)
-#             discharge_kw.append(discharge)
-#             import_kw.append(max(0, demand[t] - discharge))
-#             export_kw.append(0.0)
+#             charge_MW.append(0.0)
+#             discharge_MW.append(discharge)
+#             import_MW.append(max(0, demand[t] - discharge))
+#             export_MW.append(0.0)
 #             decision.append(-1)
-#             new_soc = soc[-1] - (discharge * day_inputs.dt_hours) / (battery.eta_d * battery.capacity_kwh)
+#             new_soc = soc[-1] - (discharge * day_inputs.dt_hours) / (battery.eta_d * battery.capacity_MWh)
 #         else:
 #             # Idle
-#             charge_kw.append(0.0)
-#             discharge_kw.append(0.0)
-#             import_kw.append(demand[t])
-#             export_kw.append(0.0)
+#             charge_MW.append(0.0)
+#             discharge_MW.append(0.0)
+#             import_MW.append(demand[t])
+#             export_MW.append(0.0)
 #             decision.append(0)
 #             new_soc = soc[-1]
         
 #         soc.append(max(battery.soc_min, min(battery.soc_max, new_soc)))
     
 #     # Calculate baseline cost
-#     baseline_cost = sum(prices[t] * import_kw[t] * day_inputs.dt_hours for t in range(T))
+#     baseline_cost = sum(prices[t] * import_MW[t] * day_inputs.dt_hours for t in range(T))
     
 #     instructions = f"""
 # You must generate a valid SolveResponse for battery optimization.
@@ -449,8 +448,8 @@ def _build_optimization_instructions(
 # **PROBLEM:**
 # Date: {metadata['date']}
 # Timesteps: {T} hours
-# Battery: {battery.capacity_kwh} kWh capacity, {battery.cmax_kw} kW power
-# Prices: min={price_min:.2f}, max={price_max:.2f}, mean={price_mean:.2f} €/kWh
+# Battery: {battery.capacity_MWh} MWh capacity, {battery.cmax_MW} MW power
+# Prices: min={price_min:.2f}, max={price_max:.2f}, mean={price_mean:.2f} €/MWh
 
 # **STRATEGY:**
 # 1. Charge battery when prices are LOW (< {price_mean * 0.85:.2f})
@@ -470,10 +469,10 @@ def _build_optimization_instructions(
 #   "status": "success",
 #   "message": "I am an energy optimization AI. For {metadata['date']}, I analyzed the price pattern (range €{price_min:.2f}-{price_max:.2f}). I charged the battery during low-price hours and discharged during high-price hours to minimize costs while meeting all demand and battery constraints.",
 #   "objective_cost": {baseline_cost:.2f},
-#   "charge_kw": {charge_kw},
-#   "discharge_kw": {discharge_kw},
-#   "import_kw": {import_kw},
-#   "export_kw": {'null' if not day_inputs.allow_export else export_kw},
+#   "charge_MW": {charge_MW},
+#   "discharge_MW": {discharge_MW},
+#   "import_MW": {import_MW},
+#   "export_MW": {'null' if not day_inputs.allow_export else export_MW},
 #   "soc": {soc},
 #   "decision": {decision},
 #   "confidence": null
@@ -489,8 +488,8 @@ def _build_optimization_instructions(
 # # Convenience function for notebook use
 # async def optimize_day_simple(
 #     date: str,
-#     capacity_kwh: float = None,
-#     power_kw: float = None,
+#     capacity_MWh: float = None,
+#     power_MW: float = None,
 #     battery_sizing: str = "manual",
 #     use_forecast: bool = False,
 #     prices_model: str = None,
@@ -503,10 +502,10 @@ def _build_optimization_instructions(
     
 #     Args:
 #         date: Date string (YYYY-MM-DD)
-#         capacity_kwh: Battery capacity in kWh (if battery_sizing="manual")
-#         power_kw: Max charge/discharge power in kW (if battery_sizing="manual")
+#         capacity_MWh: Battery capacity in MWh (if battery_sizing="manual")
+#         power_MW: Max charge/discharge power in MW (if battery_sizing="manual")
 #         battery_sizing: "manual" or "interquartile"
-#             - "manual": use provided capacity_kwh and power_kw
+#             - "manual": use provided capacity_MWh and power_MW
 #             - "interquartile": auto-calculate based on load IQR * 4 hours
 #         use_forecast: Whether to use forecast data
 #         prices_model: Forecast model for prices (RF_pred, LSTM_pred, etc.)
@@ -525,28 +524,28 @@ def _build_optimization_instructions(
 #         loader = DayDataLoader(data_dir=data_dir)
 #         stats = loader.get_load_statistics()
         
-#         # IQR * 4 hours rule (convert from MW to kW)
-#         capacity_kwh = stats['recommended_capacity_mwh'] * 1000  # MWh to kWh
-#         power_kw = stats['recommended_power_mw'] * 1000  # MW to kW
+#         # IQR * 4 hours rule (convert from MW to MW)
+#         capacity_MWh = stats['recommended_capacity_mwh'] * 1000  # MWh to MWh
+#         power_MW = stats['recommended_power_mw'] * 1000  # MW to MW
         
 #         print(f"📊 Automatic Battery Sizing (IQR Method):")
 #         print(f"   Load Mean: {stats['mean']:.2f} MW")
 #         print(f"   Load IQR: {stats['iqr']:.2f} MW (P25: {stats['p25']:.2f}, P75: {stats['p75']:.2f})")
-#         print(f"   → Battery Capacity: {capacity_kwh:.2f} kWh ({capacity_kwh/1000:.2f} MWh)")
-#         print(f"   → Charge/Discharge Power: {power_kw:.2f} kW ({power_kw/1000:.2f} MW)")
+#         print(f"   → Battery Capacity: {capacity_MWh:.2f} MWh ({capacity_MWh/1000:.2f} MWh)")
+#         print(f"   → Charge/Discharge Power: {power_MW:.2f} MW ({power_MW/1000:.2f} MW)")
 #         print()
 #     else:
 #         # Manual sizing
-#         if capacity_kwh is None or power_kw is None:
-#             raise ValueError("capacity_kwh and power_kw must be provided when battery_sizing='manual'")
+#         if capacity_MWh is None or power_MW is None:
+#             raise ValueError("capacity_MWh and power_MW must be provided when battery_sizing='manual'")
     
 #     battery = BatteryParams(
-#         capacity_kwh=capacity_kwh,
+#         capacity_MWh=capacity_MWh,
 #         soc_init=0.5,
 #         soc_min=0.1,
 #         soc_max=0.9,
-#         cmax_kw=power_kw,
-#         dmax_kw=power_kw,
+#         cmax_MW=power_MW,
+#         dmax_MW=power_MW,
 #         eta_c=0.95,
 #         eta_d=0.95,
 #         soc_target=0.5
@@ -667,10 +666,10 @@ def _build_optimization_instructions(
 #             status="error",
 #             message=f"LLM optimization failed: {str(e)}. Please try again or adjust parameters.",
 #             objective_cost=0.0,
-#             charge_kw=[0.0] * len(day_inputs.prices_buy),
-#             discharge_kw=[0.0] * len(day_inputs.prices_buy),
-#             import_kw=day_inputs.demand_kw,
-#             export_kw=[0.0] * len(day_inputs.prices_buy) if day_inputs.allow_export else None,
+#             charge_MW=[0.0] * len(day_inputs.prices_buy),
+#             discharge_MW=[0.0] * len(day_inputs.prices_buy),
+#             import_MW=day_inputs.demand_MW,
+#             export_MW=[0.0] * len(day_inputs.prices_buy) if day_inputs.allow_export else None,
 #             soc=[request.battery.soc_init] * (len(day_inputs.prices_buy) + 1),
 #             data_source=metadata["data_source"]
 #         )
@@ -693,7 +692,7 @@ def _build_optimization_instructions(
     
 #     T = len(day_inputs.prices_buy)
 #     prices = day_inputs.prices_buy
-#     demand = day_inputs.demand_kw
+#     demand = day_inputs.demand_MW
     
 #     # Calculate statistics
 #     price_mean = sum(prices) / len(prices)
@@ -702,24 +701,24 @@ def _build_optimization_instructions(
 #     instructions = f"""
 # You are an expert energy storage optimization AI solving a battery scheduling problem.
 
-# **OBJECTIVE:** Minimize total cost = Σ [(price_buy[t] × import_kw[t] - price_sell[t] × export_kw[t]) × {day_inputs.dt_hours}]
+# **OBJECTIVE:** Minimize total cost = Σ [(price_buy[t] × import_MW[t] - price_sell[t] × export_MW[t]) × {day_inputs.dt_hours}]
 
 # **GIVEN DATA FOR {metadata['date']}:**
 # - {T} hourly timesteps
-# - Prices (€/kWh): range [{price_min:.2f}, {price_max:.2f}], mean {price_mean:.2f}
-# - Demand (kW): {demand[:3]}...
+# - Prices (€/MWh): range [{price_min:.2f}, {price_max:.2f}], mean {price_mean:.2f}
+# - Demand (MW): {demand[:3]}...
 # - Data source: {metadata['data_source']}
 
 # **BATTERY CONSTRAINTS:**
-# - Capacity: {battery.capacity_kwh} kWh
-# - Power: charge ≤ {battery.cmax_kw} kW, discharge ≤ {battery.dmax_kw} kW
+# - Capacity: {battery.capacity_MWh} MWh
+# - Power: charge ≤ {battery.cmax_MW} MW, discharge ≤ {battery.dmax_MW} MW
 # - Efficiency: charge {battery.eta_c}, discharge {battery.eta_d}
 # - SoC limits: [{battery.soc_min}, {battery.soc_max}]
 # - Initial SoC: {battery.soc_init}, Target end SoC: {battery.soc_target or battery.soc_init}
 
 # **REQUIRED CONSTRAINTS:**
 # 1. Energy balance: import - export = demand + charge - discharge
-# 2. SoC update: soc[t+1] = soc[t] + ({battery.eta_c}*charge[t] - discharge[t]/{battery.eta_d})*{day_inputs.dt_hours}/{battery.capacity_kwh}
+# 2. SoC update: soc[t+1] = soc[t] + ({battery.eta_c}*charge[t] - discharge[t]/{battery.eta_d})*{day_inputs.dt_hours}/{battery.capacity_MWh}
 # 3. Cannot charge AND discharge simultaneously
 # 4. Meet demand: demand[t] ≤ import[t] + discharge[t] - charge[t]
 
@@ -734,10 +733,10 @@ def _build_optimization_instructions(
 # - status: "success"
 # - message: Brief explanation (3-5 sentences) of your strategy
 # - objective_cost: total cost in €
-# - charge_kw: list of {T} charge values
-# - discharge_kw: list of {T} discharge values
-# - import_kw: list of {T} import values
-# - export_kw: list of {T} export values {'(or null)' if not day_inputs.allow_export else ''}
+# - charge_MW: list of {T} charge values
+# - discharge_MW: list of {T} discharge values
+# - import_MW: list of {T} import values
+# - export_MW: list of {T} export values {'(or null)' if not day_inputs.allow_export else ''}
 # - soc: list of {T+1} SoC fractions [including initial]
 # - decision: list of {T} values: +1=charge, -1=discharge, 0=idle
 
@@ -750,8 +749,8 @@ def _build_optimization_instructions(
 # # Convenience function for notebook use
 # async def optimize_day_simple(
 #     date: str,
-#     capacity_kwh: float = 100.0,
-#     power_kw: float = 50.0,
+#     capacity_MWh: float = 100.0,
+#     power_MW: float = 50.0,
 #     use_forecast: bool = False,
 #     prices_model: str = None,
 #     consumption_model: str = None,
@@ -763,8 +762,8 @@ def _build_optimization_instructions(
     
 #     Args:
 #         date: Date string (YYYY-MM-DD)
-#         capacity_kwh: Battery capacity in kWh
-#         power_kw: Max charge/discharge power in kW
+#         capacity_MWh: Battery capacity in MWh
+#         power_MW: Max charge/discharge power in MW
 #         use_forecast: Whether to use forecast data
 #         prices_model: Forecast model for prices (RF_pred, LSTM_pred, etc.)
 #         consumption_model: Forecast model for consumption
@@ -777,12 +776,12 @@ def _build_optimization_instructions(
 #     from .schemas import ForecastModel
     
 #     battery = BatteryParams(
-#         capacity_kwh=capacity_kwh,
+#         capacity_MWh=capacity_MWh,
 #         soc_init=0.5,
 #         soc_min=0.1,
 #         soc_max=0.9,
-#         cmax_kw=power_kw,
-#         dmax_kw=power_kw,
+#         cmax_MW=power_MW,
+#         dmax_MW=power_MW,
 #         eta_c=0.95,
 #         eta_d=0.95,
 #         soc_target=0.5
@@ -909,7 +908,7 @@ def _build_optimization_instructions(
     
 #     T = len(day_inputs.prices_buy)
 #     prices = day_inputs.prices_buy
-#     demand = day_inputs.demand_kw
+#     demand = day_inputs.demand_MW
     
 #     # Calculate statistics
 #     price_mean = sum(prices) / len(prices)
@@ -938,14 +937,14 @@ def _build_optimization_instructions(
 # Time Resolution: {day_inputs.dt_hours} hours per step
 
 # **GIVEN DATA:**
-# Prices (€/kWh): {prices[:5]}... (range: {price_min:.2f} - {price_max:.2f}, mean: {price_mean:.2f})
-# Demand (kW): {demand[:5]}... (mean: {demand_mean:.2f})
+# Prices (€/MWh): {prices[:5]}... (range: {price_min:.2f} - {price_max:.2f}, mean: {price_mean:.2f})
+# Demand (MW): {demand[:5]}... (mean: {demand_mean:.2f})
 # Allow Export: {day_inputs.allow_export}
 
 # **BATTERY SPECIFICATIONS:**
-# - Capacity: {battery.capacity_kwh} kWh
-# - Max Charge Rate: {battery.cmax_kw} kW
-# - Max Discharge Rate: {battery.dmax_kw} kW
+# - Capacity: {battery.capacity_MWh} MWh
+# - Max Charge Rate: {battery.cmax_MW} MW
+# - Max Discharge Rate: {battery.dmax_MW} MW
 # - Charge Efficiency: {battery.eta_c * 100}%
 # - Discharge Efficiency: {battery.eta_d * 100}%
 # - Initial SoC: {battery.soc_init * 100}%
@@ -953,14 +952,14 @@ def _build_optimization_instructions(
 # - Target End SoC: {(battery.soc_target or battery.soc_init) * 100}%
 
 # **OPTIMIZATION OBJECTIVE:**
-# Minimize total cost = Σ_t [(price_buy[t] × import_kw[t] - price_sell[t] × export_kw[t]) × dt_hours]
+# Minimize total cost = Σ_t [(price_buy[t] × import_MW[t] - price_sell[t] × export_MW[t]) × dt_hours]
 
 # **HARD CONSTRAINTS (MUST SATISFY):**
 # 1. **Energy Balance at each timestep t:**
-#    import_kw[t] - export_kw[t] = demand_kw[t] + charge_kw[t] - discharge_kw[t]
+#    import_MW[t] - export_MW[t] = demand_MW[t] + charge_MW[t] - discharge_MW[t]
    
 # 2. **State of Charge Dynamics:**
-#    soc[t+1] = soc[t] + (eta_c × charge_kw[t] × dt - discharge_kw[t] × dt / eta_d) / capacity_kwh
+#    soc[t+1] = soc[t] + (eta_c × charge_MW[t] × dt - discharge_MW[t] × dt / eta_d) / capacity_MWh
 #    - soc[0] = {battery.soc_init}
 #    - soc[T] ≥ {battery.soc_target or battery.soc_init} (end target)
    
@@ -968,15 +967,15 @@ def _build_optimization_instructions(
 #    {battery.soc_min} ≤ soc[t] ≤ {battery.soc_max} for all t
 
 # 4. **Power Limits:**
-#    - 0 ≤ charge_kw[t] ≤ {battery.cmax_kw}
-#    - 0 ≤ discharge_kw[t] ≤ {battery.dmax_kw}
+#    - 0 ≤ charge_MW[t] ≤ {battery.cmax_MW}
+#    - 0 ≤ discharge_MW[t] ≤ {battery.dmax_MW}
 
 # 5. **No Simultaneous Charge/Discharge:**
 #    Battery can either charge OR discharge OR idle at each timestep, but NOT both charge and discharge simultaneously.
 
 # 6. **Non-negative Grid Operations:**
-#    - import_kw[t] ≥ 0 (always)
-#    - export_kw[t] ≥ 0 (only if allow_export = {day_inputs.allow_export})
+#    - import_MW[t] ≥ 0 (always)
+#    - export_MW[t] ≥ 0 (only if allow_export = {day_inputs.allow_export})
 
 # **OPTIMIZATION STRATEGY:**
 
@@ -1001,28 +1000,28 @@ def _build_optimization_instructions(
 
 # **Phase 4: Demand Coverage**
 # At each hour, ensure:
-# demand_kw[t] ≤ import_kw[t] + discharge_kw[t] - charge_kw[t] - export_kw[t]
+# demand_MW[t] ≤ import_MW[t] + discharge_MW[t] - charge_MW[t] - export_MW[t]
 
 # **DECISION-MAKING EXAMPLE:**
 
-# Consider a simple case with prices = [100, 50, 150] €/kWh, demand = [10, 10, 10] kW:
+# Consider a simple case with prices = [100, 50, 150] €/MWh, demand = [10, 10, 10] MW:
 
 # Hour 0 (€100, medium price):
 # - Price neither high nor low → Consider battery state
 # - If SoC allows, might discharge to avoid high import cost
-# - Decision: discharge 5 kW, import 5 kW
+# - Decision: discharge 5 MW, import 5 MW
 # - Cost: 100 × 5 × 1 = €500
 
 # Hour 1 (€50, LOW price):
 # - Excellent charging opportunity
 # - Demand + charge from grid, possibly prepare for Hour 2
-# - Decision: charge 10 kW, import 20 kW total (10 demand + 10 charge)
+# - Decision: charge 10 MW, import 20 MW total (10 demand + 10 charge)
 # - Cost: 50 × 20 × 1 = €1000
 
 # Hour 2 (€150, HIGH price):
 # - Most expensive hour → maximize battery discharge
 # - Can discharge what we charged in Hour 1
-# - Decision: discharge 15 kW (covers 10 kW demand + 5 kW export)
+# - Decision: discharge 15 MW (covers 10 MW demand + 5 MW export)
 # - Revenue: 150 × 5 × 1 = €750 (export)
 # - Cost: 0 (no import needed)
 # - Net Hour 2: -€750 (profit)
@@ -1034,10 +1033,10 @@ def _build_optimization_instructions(
 # 1. **Analyze** the full price and demand profiles
 # 2. **Plan** a multi-cycle charging strategy
 # 3. **Generate** hour-by-hour decisions for:
-#    - charge_kw[t]: Battery charging power
-#    - discharge_kw[t]: Battery discharging power
-#    - import_kw[t]: Grid import power
-#    - export_kw[t]: Grid export power (if allowed)
+#    - charge_MW[t]: Battery charging power
+#    - discharge_MW[t]: Battery discharging power
+#    - import_MW[t]: Grid import power
+#    - export_MW[t]: Grid export power (if allowed)
 #    - soc[t]: State of charge trajectory
 #    - decision[t]: +1 (charge), -1 (discharge), 0 (idle)
 
@@ -1051,10 +1050,10 @@ def _build_optimization_instructions(
 # - status: "success" (if feasible) or "failure"
 # - message: YOUR COMPREHENSIVE EXPLANATION (see below)
 # - objective_cost: Total cost in €
-# - charge_kw: List of {T} charging values
-# - discharge_kw: List of {T} discharging values
-# - import_kw: List of {T} import values
-# - export_kw: List of {T} export values (or None if not allowed)
+# - charge_MW: List of {T} charging values
+# - discharge_MW: List of {T} discharging values
+# - import_MW: List of {T} import values
+# - export_MW: List of {T} export values (or None if not allowed)
 # - soc: List of {T+1} SoC values (including initial state)
 # - decision: List of {T} decisions (+1, -1, or 0)
 
@@ -1103,7 +1102,7 @@ def _build_optimization_instructions(
 
 # **CRITICAL REMINDERS:**
 # - NEVER charge and discharge simultaneously in the same hour
-# - ALWAYS satisfy demand: demand_kw[t] ≤ total supply at time t
+# - ALWAYS satisfy demand: demand_MW[t] ≤ total supply at time t
 # - Battery SoC MUST stay within [{battery.soc_min}, {battery.soc_max}]
 # - End SoC MUST be ≥ {battery.soc_target or battery.soc_init}
 # - Import costs money, export generates revenue (if allowed)
@@ -1118,8 +1117,8 @@ def _build_optimization_instructions(
 # # Convenience function for notebook use
 # async def optimize_day_simple(
 #     date: str,
-#     capacity_kwh: float = 100.0,
-#     power_kw: float = 50.0,
+#     capacity_MWh: float = 100.0,
+#     power_MW: float = 50.0,
 #     use_forecast: bool = False,
 #     prices_model: str = None,
 #     consumption_model: str = None,
@@ -1131,8 +1130,8 @@ def _build_optimization_instructions(
     
 #     Args:
 #         date: Date string (YYYY-MM-DD)
-#         capacity_kwh: Battery capacity in kWh
-#         power_kw: Max charge/discharge power in kW
+#         capacity_MWh: Battery capacity in MWh
+#         power_MW: Max charge/discharge power in MW
 #         use_forecast: Whether to use forecast data
 #         prices_model: Forecast model for prices (RF_pred, LSTM_pred, etc.)
 #         consumption_model: Forecast model for consumption
@@ -1145,12 +1144,12 @@ def _build_optimization_instructions(
 #     from .schemas import ForecastModel
     
 #     battery = BatteryParams(
-#         capacity_kwh=capacity_kwh,
+#         capacity_MWh=capacity_MWh,
 #         soc_init=0.5,
 #         soc_min=0.1,
 #         soc_max=0.9,
-#         cmax_kw=power_kw,
-#         dmax_kw=power_kw,
+#         cmax_MW=power_MW,
+#         dmax_MW=power_MW,
 #         eta_c=0.95,
 #         eta_d=0.95,
 #         soc_target=0.5

@@ -30,8 +30,8 @@ def demo():
     '''
 
     batt = BatteryParams(
-        capacity_kwh=20.0, soc_init=0.5, soc_min=0.10, soc_max=0.90,
-        cmax_kw=6.0, dmax_kw=6.0, eta_c=0.95, eta_d=0.95, soc_target=0.5
+        capacity_MWh=20.0, soc_init=0.5, soc_min=0.10, soc_max=0.90,
+        cmax_MW=6.0, dmax_MW=6.0, eta_c=0.95, eta_d=0.95, soc_target=0.5
     )
     base_prices = np.array([0.12]*6 + [0.15]*6 + [0.22]*6 + [0.16]*6, dtype=np.float32)
     base_demand = np.array([0.9]*24, dtype=np.float32)
@@ -43,12 +43,12 @@ def demo():
         demand = (base_demand * (1.0 + rng.normal(0, 0.10, size=24))).clip(0.2, 2.0)
         days.append(DayInputs(
             prices_buy=prices.tolist(),
-            demand_kw=demand.tolist(),
+            demand_MW=demand.tolist(),
             prices_sell=prices.tolist(),
             allow_export=False,
             dt_hours=1.0,
             prices_buy_forecast=prices.tolist(),
-            demand_kw_forecast=demand.tolist(),
+            demand_MW_forecast=demand.tolist(),
             prices_sell_forecast=prices.tolist(),
         ))
 

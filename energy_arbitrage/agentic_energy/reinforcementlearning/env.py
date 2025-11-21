@@ -80,11 +80,11 @@ class BatteryArbRLEnv(gym.Env):
         self.obs_window: int = int(env_config.get("obs_window", 24))
 
         # ---- battery constants ----
-        self.C = float(batt.capacity_kwh)
+        self.C = float(batt.capacity_MWh)
         self.eta_c = float(batt.eta_c)
         self.eta_d = float(batt.eta_d)
-        self.cmax = float(batt.cmax_kw)
-        self.dmax = float(batt.dmax_kw)
+        self.cmax = float(batt.cmax_MW)
+        self.dmax = float(batt.dmax_MW)
         self.soc_min = float(batt.soc_min)
         self.soc_max = float(batt.soc_max)
         self.soc0 = float(batt.soc_init)
@@ -128,7 +128,7 @@ class BatteryArbRLEnv(gym.Env):
 
         self.prices_buy_forecast  = self.prices_buy_actual.copy()
         self.prices_sell_forecast = self.prices_sell_actual.copy()
-        self.demand_kw_forecast   = self.demand_actual.copy()
+        self.demand_MW_forecast   = self.demand_actual.copy()
 
         self.prices_buy_obs  = np.zeros(1, dtype=np.float32)
         self.prices_sell_obs = np.zeros(1, dtype=np.float32)
@@ -164,7 +164,7 @@ class BatteryArbRLEnv(gym.Env):
 
         self.prices_buy_obs = self._hybrid_series(self.prices_buy_actual, self.prices_buy_forecast, self.t)
         self.prices_sell_obs = self._hybrid_series(self.prices_sell_actual, self.prices_sell_forecast, self.t)
-        self.demand_obs = self._hybrid_series(self.demand_actual, self.demand_kw_forecast, self.t)
+        self.demand_obs = self._hybrid_series(self.demand_actual, self.demand_MW_forecast, self.t)
         # --- Simple normalization ---
         pb_scaled = np.clip(self.prices_buy_obs / self.price_scale,  0.0, self.obs_clip)
         ps_scaled = np.clip(self.prices_sell_obs / self.price_scale,  0.0, self.obs_clip)  # same scale as buy
@@ -182,10 +182,10 @@ class BatteryArbRLEnv(gym.Env):
 
         # Actuals used for physics and billing (reward)
         self.prices_buy_actual = np.asarray(day.prices_buy, dtype=np.float32)      # BUY PRICES (full day)
-        self.demand_actual = np.asarray(day.demand_kw,  dtype=np.float32)
+        self.demand_actual = np.asarray(day.demand_MW,  dtype=np.float32)
 
         self.prices_buy_forecast = np.asarray(day.prices_buy_forecast, dtype=np.float32) if (day is not None and day.prices_buy_forecast is not None) else None
-        self.demand_kw_forecast  = np.asarray(day.demand_kw_forecast,  dtype=np.float32) if (day is not None and day.demand_kw_forecast is not None) else None
+        self.demand_MW_forecast  = np.asarray(day.demand_MW_forecast,  dtype=np.float32) if (day is not None and day.demand_MW_forecast is not None) else None
 
         # Sell prices (used only if export is allowed)
         self.prices_sell_actual = np.asarray(
@@ -199,10 +199,10 @@ class BatteryArbRLEnv(gym.Env):
         )
 
         # What the policy observes (forecasts or actuals)
-        if self.obs_mode == "forecast" and day.prices_buy_forecast and day.demand_kw_forecast:
+        if self.obs_mode == "forecast" and day.prices_buy_forecast and day.demand_MW_forecast:
             self.prices_buy_obs = np.asarray(day.prices_buy_forecast, dtype=np.float32)
             self.prices_sell_obs = np.asarray(day.prices_sell_forecast, dtype=np.float32)
-            self.demand_obs = np.asarray(day.demand_kw_forecast,  dtype=np.float32)
+            self.demand_obs = np.asarray(day.demand_MW_forecast,  dtype=np.float32)
         else:
             self.prices_buy_obs = self.prices_buy_actual.copy()
             self.prices_sell_obs = self.prices_sell_actual.copy()
@@ -210,7 +210,7 @@ class BatteryArbRLEnv(gym.Env):
 
         # Simple per-episode scales: use the means of forecasts (fallback actuals)
         pb_src = self.prices_buy_forecast if self.prices_buy_forecast is not None else self.prices_buy_actual
-        dd_src = self.demand_kw_forecast     if self.demand_kw_forecast     is not None else self.demand_actual
+        dd_src = self.demand_MW_forecast     if self.demand_MW_forecast     is not None else self.demand_actual
         pb_mu = float(np.mean(pb_src)) if len(pb_src) else 1.0
         dd_mu = float(np.mean(dd_src)) if len(dd_src) else 1.0
         # Avoid divide-by-zero; keep small floor
@@ -245,25 +245,25 @@ class BatteryArbRLEnv(gym.Env):
 
     def step(self, action: np.ndarray):
         a = float(np.clip(action[0], -1.0, 1.0))
-        charge_kw    = max(0.0,  a) * self.cmax
-        discharge_kw = max(0.0, -a) * self.dmax
+        charge_MW    = max(0.0,  a) * self.cmax
+        discharge_MW = max(0.0, -a) * self.dmax
 
         # SoC with bound enforcement
-        delta_soc = (self.eta_c*charge_kw*self.dt - discharge_kw*self.dt/self.eta_d)/self.C
+        delta_soc = (self.eta_c*charge_MW*self.dt - discharge_MW*self.dt/self.eta_d)/self.C
         soc_next = self.soc + delta_soc
         if soc_next > self.soc_max + 1e-9:
             excess = soc_next - self.soc_max
             reduce_charge = excess * self.C / (self.eta_c*self.dt + 1e-12)
-            charge_kw = max(0.0, charge_kw - reduce_charge)
-            soc_next = self.soc + (self.eta_c*charge_kw*self.dt - discharge_kw*self.dt/self.eta_d)/self.C
+            charge_MW = max(0.0, charge_MW - reduce_charge)
+            soc_next = self.soc + (self.eta_c*charge_MW*self.dt - discharge_MW*self.dt/self.eta_d)/self.C
         elif soc_next < self.soc_min - 1e-9:
             deficit = self.soc_min - soc_next
             reduce_discharge = deficit * self.C * self.eta_d / (self.dt + 1e-12)
-            discharge_kw = max(0.0, discharge_kw - reduce_discharge)
-            soc_next = self.soc + (self.eta_c*charge_kw*self.dt - discharge_kw*self.dt/self.eta_d)/self.C
+            discharge_MW = max(0.0, discharge_MW - reduce_discharge)
+            soc_next = self.soc + (self.eta_c*charge_MW*self.dt - discharge_MW*self.dt/self.eta_d)/self.C
 
         # Balance and reward use ACTUALS
-        net = self.demand_actual[self.t] + charge_kw - discharge_kw
+        net = self.demand_actual[self.t] + charge_MW - discharge_MW
         imp = max(0.0, net)
         exp = max(0.0, -net) if self.allow_export else 0.0
 
@@ -282,8 +282,8 @@ class BatteryArbRLEnv(gym.Env):
         # logs & advance
         self._import[self.t] = imp
         self._export[self.t] = exp
-        self._charge[self.t] = charge_kw
-        self._disch[self.t]  = discharge_kw
+        self._charge[self.t] = charge_MW
+        self._disch[self.t]  = discharge_MW
         self.soc = float(np.clip(soc_next, self.soc_min, self.soc_max))
         self._soc_series[self.t + 1] = self.soc
 
@@ -335,9 +335,9 @@ class BatteryArbRLEnv(gym.Env):
         return SolveResponse(
             status="rllib_policy",
             objective_cost=total_cost,
-            charge_kw=self._charge.tolist(),
-            discharge_kw=self._disch.tolist(),
-            import_kw=self._import.tolist(),
-            export_kw=(self._export.tolist() if self.allow_export else None),
+            charge_MW=self._charge.tolist(),
+            discharge_MW=self._disch.tolist(),
+            import_MW=self._import.tolist(),
+            export_MW=(self._export.tolist() if self.allow_export else None),
             soc=self._soc_series.tolist(),
         )

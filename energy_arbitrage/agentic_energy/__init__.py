@@ -2,7 +2,7 @@ from .schemas import (
     MetricStats, DateRange, SummaryStats,
     EnergyDataRecord,
     BatteryParams, DayInputs,
-    SolveRequest, SolveFromRecordsRequest, SolveResponse,
+    SolveRequest, SolveFromRecordsRequest, SolveResponse, ReasoningRequest, ReasoningResponse,
 )
 
 # Re-export data loader utilities

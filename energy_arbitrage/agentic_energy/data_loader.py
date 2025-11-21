@@ -64,7 +64,8 @@ class EnergyDataLoader:
             "CAISO":   "CAISO_data.csv",
             "ERCOT":   "Ercot_energy_data.csv",
             "GERMANY": "Germany_energy_Data.csv",
-            "ITALY":   "Italy_data_actual.csv",          # <- updated to your naming
+            "ITALY":   "Italy_data_actual.csv",
+            "ITALY_TEST": "Italy_data.csv",
             "NEWYORK": "NewYork_energy_data.csv",
         }
 
@@ -314,20 +315,20 @@ class BatteryDataLoader:
     def compute_battery_params(self) -> BatteryParams:
         """
         Compute capacity and charge/discharge limits from IQR of load statistics.
-        Converts MW → kW and MWh → kWh internally.
+        Converts MW → MW and MWh → MWh internally.
         """
         p25, p75 = self.load_stats['p25'], self.load_stats['p75']
 
         # Interquartile load deviation
-        iqr_range_kw = p75 - p25
-        capacity_kwh = iqr_range_kw * self.duration_hours
-        cmax_kw = capacity_kwh / self.duration_hours
-        dmax_kw = cmax_kw
+        iqr_range_MW = p75 - p25
+        capacity_MWh = iqr_range_MW * self.duration_hours
+        cmax_MW = capacity_MWh / self.duration_hours
+        dmax_MW = cmax_MW
 
         return BatteryParams(
-            capacity_kwh=round(capacity_kwh, 2),
-            cmax_kw=round(cmax_kw, 2),
-            dmax_kw=round(dmax_kw, 2),
+            capacity_MWh=round(capacity_MWh, 2),
+            cmax_MW=round(cmax_MW, 2),
+            dmax_MW=round(dmax_MW, 2),
             soc_init=self.soc_init,
             soc_min=self.soc_min,
             soc_max=self.soc_max,
@@ -340,9 +341,9 @@ class BatteryDataLoader:
         """Return computed specs as readable summary."""
         params = self.compute_battery_params()
         return {
-            "Capacity (kWh)": params.capacity_kwh,
-            "Charge Power (kW)": params.cmax_kw,
-            "Discharge Power (kW)": params.dmax_kw,
+            "Capacity (MWh)": params.capacity_MWh,
+            "Charge Power (MW)": params.cmax_MW,
+            "Discharge Power (MW)": params.dmax_MW,
             "Efficiency (Charge/Discharge)": (params.eta_c, params.eta_d),
             "Duration (hours)": self.duration_hours
         }

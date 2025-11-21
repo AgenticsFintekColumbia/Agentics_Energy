@@ -64,12 +64,12 @@ async def main():
             prices_sell = prices_buy  # or different if allowing export
             req = SolveRequest(
                 battery=BatteryParams(
-                    capacity_kwh=20.0, soc_init=0.5, soc_min=0.10, soc_max=0.90,
-                    cmax_kw=6.0, dmax_kw=6.0, eta_c=0.95, eta_d=0.95, soc_target=0.5
+                    capacity_MWh=20.0, soc_init=0.5, soc_min=0.10, soc_max=0.90,
+                    cmax_MW=6.0, dmax_MW=6.0, eta_c=0.95, eta_d=0.95, soc_target=0.5
                 ),
                 day=DayInputs(
                     prices_buy=prices_buy,
-                    demand_kw=demand,
+                    demand_MW=demand,
                     prices_sell=prices_sell,
                     allow_export=True,
                     dt_hours=1.0
@@ -99,26 +99,26 @@ async def main():
                 reasoning=False,
                 # '''Minimize the total objective cost i.e. price sell times grid export subtracted from price buy times grid import, 
                 # given the battery constraints of following the rates and efficiencies of charging and discharging and staying with state of charge limits  for all the 24 timestamps,
-                # and return the SolveResponse object with a goal to at least fulfill the demand_kw at each timestamp using the grid import and the battery
+                # and return the SolveResponse object with a goal to at least fulfill the demand_MW at each timestamp using the grid import and the battery
                 # and maximize profit by selling the excess as grid export by taking advantage of the price variation.'''
                 instructions='''
                     You are solving a daily battery scheduling optimization problem using Mixed Integer Linear Programming (MILP). 
                     You are given a request object containing:
                     - Hourly energy prices for buying and selling electricity.
                     - Hourly electricity demand from a building or system.
-                    - Battery technical parameters including capacity_kwh, charge/discharge power limits cmax_kw and dmax_kw, efficiencies - eta_c and eta_d, and state-of-charge soc_max, soc_min bounds.
+                    - Battery technical parameters including capacity_MWh, charge/discharge power limits cmax_MW and dmax_MW, efficiencies - eta_c and eta_d, and state-of-charge soc_max, soc_min bounds.
 
                     Your task is to:
                     1. Determine the hourly charge, discharge, grid import, grid export, and SoC schedule for 24 hours.
                     2. Minimize the total operational cost:
-                        total_cost = Σ_t [ (price_buy[t] * import_kw[t] - price_sell[t] * export_kw[t]) * dt_hours ]
+                        total_cost = Σ_t [ (price_buy[t] * import_MW[t] - price_sell[t] * export_MW[t]) * dt_hours ]
                     3. Ensure all constraints are satisfied:
-                    - SoC at time t = SoC at time t-1 + (eta_c * charge_kw[t] - discharge_kw[t] / eta_d) * dt_hours / capacity_kwh
+                    - SoC at time t = SoC at time t-1 + (eta_c * charge_MW[t] - discharge_MW[t] / eta_d) * dt_hours / capacity_MWh
                     - soc_min ≤ SoC_t ≤ soc_max for all t
-                    - 0 ≤ charge_kw[t] ≤ cmax_kw
-                    - 0 ≤ discharge_kw[t] ≤ dmax_kw
-                    - import_kw[t] = max(0, demand_kw[t] + charge_kw[t] - discharge_kw[t] - export_kw[t])
-                    - export_kw[t] ≥ 0 only if allow_export = True
+                    - 0 ≤ charge_MW[t] ≤ cmax_MW
+                    - 0 ≤ discharge_MW[t] ≤ dmax_MW
+                    - import_MW[t] = max(0, demand_MW[t] + charge_MW[t] - discharge_MW[t] - export_MW[t])
+                    - export_MW[t] ≥ 0 only if allow_export = True
                     - initialize the soc variable at soc_init at t=0, where t is the first hour of the day.
                     - The battery SoC at the end of the day should reach soc_target (if provided), else soc_init.
                     - Assume the battery can either charge or discharge or stay idle in a given hour, not both. So try to schedule the battery in such a way.
@@ -127,10 +127,10 @@ async def main():
                     - status: "success" or "failure"
                     - message: optional diagnostic
                     - objective_cost: the minimized total cost
-                    - charge_kw: list of hourly charge values (kW)
-                    - discharge_kw: list of hourly discharge values (kW)
-                    - import_kw: list of hourly grid import values (kW)
-                    - export_kw: list of hourly grid export values (kW)
+                    - charge_MW: list of hourly charge values (MW)
+                    - discharge_MW: list of hourly discharge values (MW)
+                    - import_MW: list of hourly grid import values (MW)
+                    - export_MW: list of hourly grid export values (MW)
                     - soc: list of hourly state of charge values (fraction of capacity between 0 and 1)
 
                     Make sure the final schedule satisfies all physical constraints and the objective function is minimized.

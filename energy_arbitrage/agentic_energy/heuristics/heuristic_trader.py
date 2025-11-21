@@ -63,7 +63,7 @@ class HeuristicTrader:
             prices, demand = records_to_arrays(req.records)
             day = DayInputs(
                 prices_buy=prices,
-                demand_kw=demand,
+                demand_MW=demand,
                 prices_sell=prices,
                 allow_export=req.allow_export,
                 dt_hours=req.dt_hours,
@@ -88,8 +88,8 @@ class HeuristicTrader:
     ) -> SolveResponse:
 
         n = len(day.prices_buy)
-        if len(day.demand_kw) != n:
-            raise ValueError("prices_buy and demand_kw must have the same length")
+        if len(day.demand_MW) != n:
+            raise ValueError("prices_buy and demand_MW must have the same length")
         if day.prices_sell is not None and len(day.prices_sell) != n:
             raise ValueError("prices_sell length must match prices_buy when provided")
         if day.dt_hours <= 0:
@@ -103,25 +103,25 @@ class HeuristicTrader:
             else p_buy if day.allow_export
             else np.zeros_like(p_buy)
         )
-        load = np.asarray(day.demand_kw, dtype=np.float64)
+        load = np.asarray(day.demand_MW, dtype=np.float64)
 
         # Battery params
         dt = float(day.dt_hours)
-        C = float(bat.capacity_kwh)              # kWh
+        C = float(bat.capacity_MWh)              # MWh
         soc_min = float(bat.soc_min)
         soc_max = float(bat.soc_max)
         soc = float(np.clip(bat.soc_init, soc_min, soc_max))  # FRACTION in [0,1]
 
-        cmax = float(bat.cmax_kw)                # kW
-        dmax = float(bat.dmax_kw)                # kW
+        cmax = float(bat.cmax_MW)                # MW
+        dmax = float(bat.dmax_MW)                # MW
         eta_c = float(bat.eta_c)
         eta_d = float(bat.eta_d)
 
         # Outputs
-        charge_kw = np.zeros(n, dtype=np.float64)
-        discharge_kw = np.zeros(n, dtype=np.float64)
-        import_kw = np.zeros(n, dtype=np.float64)
-        export_kw = np.zeros(n, dtype=np.float64)  # will remain zeros if !allow_export
+        charge_MW = np.zeros(n, dtype=np.float64)
+        discharge_MW = np.zeros(n, dtype=np.float64)
+        import_MW = np.zeros(n, dtype=np.float64)
+        export_MW = np.zeros(n, dtype=np.float64)  # will remain zeros if !allow_export
         soc_series = np.zeros(n + 1, dtype=np.float64)
         soc_series[0] = soc
         decision = np.zeros(n, dtype=np.float64)
@@ -132,25 +132,25 @@ class HeuristicTrader:
             hour = int((t * dt) % 24)
             action = self._get_action(hour, charge_windows, discharge_windows)
 
-            c_t = 0.0  # charge power (kW)
-            d_t = 0.0  # discharge power (kW)
+            c_t = 0.0  # charge power (MW)
+            d_t = 0.0  # discharge power (MW)
 
             if action == "charge":
-                # Headroom energy in kWh (fractional SoC space * C)
-                headroom_kwh = (soc_max - soc) * C
-                # SoC gain per kW over dt is (eta_c * dt) / C
-                # But we must limit input energy from grid (kWh): E_in <= headroom_kwh / eta_c
-                max_in_kwh = max(0.0, headroom_kwh / max(eta_c, 1e-12))
-                c_t = min(cmax, max_in_kwh / dt)
+                # Headroom energy in MWh (fractional SoC space * C)
+                headroom_MWh = (soc_max - soc) * C
+                # SoC gain per MW over dt is (eta_c * dt) / C
+                # But we must limit input energy from grid (MWh): E_in <= headroom_MWh / eta_c
+                max_in_MWh = max(0.0, headroom_MWh / max(eta_c, 1e-12))
+                c_t = min(cmax, max_in_MWh / dt)
                 decision[t] = +1.0
 
             elif action == "discharge":
-                # Available SoC energy (kWh) above soc_min
-                avail_kwh = (soc - soc_min) * C
-                # Energy to grid per kW over dt is (dt); grid receives eta_d * E_soc
-                # So max energy to grid limited by avail_kwh * eta_d
-                max_out_kwh_to_grid = max(0.0, avail_kwh * eta_d)
-                d_t = min(dmax, max_out_kwh_to_grid / dt)
+                # Available SoC energy (MWh) above soc_min
+                avail_MWh = (soc - soc_min) * C
+                # Energy to grid per MW over dt is (dt); grid receives eta_d * E_soc
+                # So max energy to grid limited by avail_MWh * eta_d
+                max_out_MWh_to_grid = max(0.0, avail_MWh * eta_d)
+                d_t = min(dmax, max_out_MWh_to_grid / dt)
                 decision[t] = -1.0
 
             else:
@@ -163,15 +163,15 @@ class HeuristicTrader:
             if day.allow_export:
                 # imp - exp = net, with imp,exp >= 0  -> canonical decomposition
                 if net >= 0:
-                    import_kw[t] = net
-                    export_kw[t] = 0.0
+                    import_MW[t] = net
+                    export_MW[t] = 0.0
                 else:
-                    import_kw[t] = 0.0
-                    export_kw[t] = -net
+                    import_MW[t] = 0.0
+                    export_MW[t] = -net
             else:
                 # imp >= net, exp = 0; if net<0, set imp=0 (can't export)
-                import_kw[t] = max(0.0, net)
-                export_kw[t] = 0.0
+                import_MW[t] = max(0.0, net)
+                export_MW[t] = 0.0
 
             # Advance SoC (fractional) with the canonical equation:
             # soc_{t+1} = soc_t + (eta_c*c_t*dt - d_t*dt/eta_d)/C
@@ -180,20 +180,20 @@ class HeuristicTrader:
             soc_series[t + 1] = soc
 
             # Cost accumulation (import cost - export revenue) * dt
-            objective += (p_buy[t] * import_kw[t] - p_sell[t] * export_kw[t]) * dt
+            objective += (p_buy[t] * import_MW[t] - p_sell[t] * export_MW[t]) * dt
 
             # Record powers
-            charge_kw[t] = c_t
-            discharge_kw[t] = d_t
+            charge_MW[t] = c_t
+            discharge_MW[t] = d_t
 
         return SolveResponse(
             status="ok-time",
             message=None,
             objective_cost=float(objective),
-            charge_kw=charge_kw.tolist(),
-            discharge_kw=discharge_kw.tolist(),
-            import_kw=import_kw.tolist(),
-            export_kw=(export_kw.tolist() if day.allow_export else None),
+            charge_MW=charge_MW.tolist(),
+            discharge_MW=discharge_MW.tolist(),
+            import_MW=import_MW.tolist(),
+            export_MW=(export_MW.tolist() if day.allow_export else None),
             soc=soc_series[1:].tolist(),   # SoC per step, fractional
             decision=decision.tolist(),
             confidence=None,
@@ -213,8 +213,8 @@ class HeuristicTrader:
             raise ValueError("Require 0 <= low_q < high_q <= 1")
 
         n = len(day.prices_buy)
-        if len(day.demand_kw) != n:
-            raise ValueError("prices_buy and demand_kw must have the same length")
+        if len(day.demand_MW) != n:
+            raise ValueError("prices_buy and demand_MW must have the same length")
         if day.prices_sell is not None and len(day.prices_sell) != n:
             raise ValueError("prices_sell length must match prices_buy when provided")
         if day.dt_hours <= 0:
@@ -223,7 +223,7 @@ class HeuristicTrader:
         # Inputs
         dt = float(day.dt_hours)
         prices = np.asarray(day.prices_buy, dtype=np.float64)
-        load = np.asarray(day.demand_kw, dtype=np.float64)
+        load = np.asarray(day.demand_MW, dtype=np.float64)
         allow_export = bool(day.allow_export)
         p_sell = (
             np.asarray(day.prices_sell, dtype=np.float64)
@@ -237,15 +237,15 @@ class HeuristicTrader:
         thr_high = float(np.quantile(prices, high_q))
 
         # Battery params
-        C = float(bat.capacity_kwh)       # kWh
+        C = float(bat.capacity_MWh)       # MWh
         soc_min = float(bat.soc_min)
         soc_max = float(bat.soc_max)
         soc = float(np.clip(bat.soc_init, soc_min, soc_max))  # FRACTION
 
         eta_c = float(bat.eta_c)
         eta_d = float(bat.eta_d)
-        cmax = float(bat.cmax_kw)
-        dmax = float(bat.dmax_kw)
+        cmax = float(bat.cmax_MW)
+        dmax = float(bat.dmax_MW)
 
         # Outputs
         charge = np.zeros(n, dtype=np.float64)
@@ -265,16 +265,16 @@ class HeuristicTrader:
             # Mode decision (mutually exclusive):
             if price <= thr_low and soc < soc_max - 1e-12:
                 # Charge as much as feasible under SoC headroom and power
-                headroom_kwh = (soc_max - soc) * C
-                max_in_kwh = max(0.0, headroom_kwh / max(eta_c, 1e-12))
-                c_t = min(cmax, max_in_kwh / dt)
+                headroom_MWh = (soc_max - soc) * C
+                max_in_MWh = max(0.0, headroom_MWh / max(eta_c, 1e-12))
+                c_t = min(cmax, max_in_MWh / dt)
                 decision[t] = +1.0
 
             elif price >= thr_high and soc > soc_min + 1e-12:
                 # Discharge as much as feasible under SoC availability and power
-                avail_kwh = (soc - soc_min) * C
-                max_out_kwh_to_grid = max(0.0, avail_kwh * eta_d)
-                d_t = min(dmax, max_out_kwh_to_grid / dt)
+                avail_MWh = (soc - soc_min) * C
+                max_out_MWh_to_grid = max(0.0, avail_MWh * eta_d)
+                d_t = min(dmax, max_out_MWh_to_grid / dt)
                 decision[t] = -1.0
 
             else:
@@ -311,10 +311,10 @@ class HeuristicTrader:
             status="ok-quantile",
             message=None,
             objective_cost=total_cost,
-            charge_kw=charge.tolist(),
-            discharge_kw=disch.tolist(),
-            import_kw=imp.tolist(),
-            export_kw=(exp.tolist() if allow_export else None),
+            charge_MW=charge.tolist(),
+            discharge_MW=disch.tolist(),
+            import_MW=imp.tolist(),
+            export_MW=(exp.tolist() if allow_export else None),
             soc=soc_series[1:].tolist(),  # FRACTION per step
             decision=decision.tolist(),
             confidence=None,
