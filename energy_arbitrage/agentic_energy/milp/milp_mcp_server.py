@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any, Tuple, List
 import numpy as np
 
 from agentic_energy.schemas import BatteryParams, DayInputs, SolveRequest, EnergyDataRecord, SolveResponse, SolveFromRecordsRequest
-from agentics import Agentics as AG
+from agentics.core.agentics import AG
 import cvxpy as cp
 from mcp.server.fastmcp import FastMCP
 
@@ -88,14 +88,38 @@ def solve_daily_milp(
     else:
         solver_opts = dict(solver_opts)  # ensure it's a dict
 
+
     try:
         if solver:
-            prob.solve(solver=cp.GUROBI, **solver_opts)
+            # Convert string "GUROBI" to actual constant cp.GUROBI
+            prob.solve(solver=getattr(cp, solver), **solver_opts)  # ✅ Correct
         else:
-            prob.solve(**solver_opts)  # may fail if default solver isn't MILP-capable
+            prob.solve(**solver_opts)
     except Exception as e:
-        return SolveResponse(status="error", message=str(e))
+        return SolveResponse(status="error", message=str(e), objective_cost=0.0)
+    # try:
+    #     if solver:
+    #         prob.solve(solver=cp.GUROBI, **solver_opts)
+    #     else:
+    #         prob.solve(**solver_opts)  # may fail if default solver isn't MILP-capable
+    # except Exception as e:
+    #     return SolveResponse(status="error", message=str(e))
     # can you write the decision list as well here in a simple for loop no need to do comprehension
+
+    if prob.status not in ["optimal", "optimal_inaccurate"]:
+        return SolveResponse(
+            status=prob.status,
+            message=f"Solver returned status '{prob.status}'",
+            objective_cost=prob.value if prob.value is not None else 0.0
+        )
+
+    # ✅ Check if solution variables exist BEFORE accessing them
+    if c.value is None or d.value is None or soc.value is None or y_c.value is None or y_d.value is None:
+        return SolveResponse(
+            status="error",
+            message=f"Solver status '{prob.status}' but solution variables are None",
+            objective_cost=prob.value if prob.value is not None else 0.0
+        )
 
     decision_list = []
     for t in range(T):
@@ -140,3 +164,167 @@ def milp_solve_from_records(args: SolveFromRecordsRequest) -> SolveResponse:
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
+
+
+
+
+
+
+
+# from typing import Optional, Dict, Any, Tuple, List
+# import numpy as np
+
+# from agentic_energy.schemas import BatteryParams, DayInputs, SolveRequest, EnergyDataRecord, SolveResponse, SolveFromRecordsRequest
+# # from agentics import Agentics as AG
+# from agentics.core.agentics import AG
+
+# import cvxpy as cp
+
+# from mcp.server.fastmcp import FastMCP
+
+# mcp = FastMCP("MILP")
+
+# def records_to_arrays(records: List[EnergyDataRecord]) -> Tuple[list, list]:
+#     rows = [r for r in records if r.prices is not None and r.consumption is not None]
+#     rows.sort(key=lambda r: r.timestamps)
+#     prices = [float(r.prices) for r in rows]
+#     demand = [float(r.consumption) for r in rows]
+#     return prices, demand
+
+
+# def solve_daily_milp(
+#     batt: BatteryParams,
+#     day: DayInputs,
+#     solver: Optional[str] = None,
+#     solver_opts: Optional[Dict[str, Any]] = None,
+# ) -> SolveResponse:
+
+#     T = len(day.prices_buy)
+#     if len(day.demand_kw) != T:
+#         return SolveResponse(status="error", message="prices_buy and demand_kw lengths differ")
+
+#     dt   = float(day.dt_hours)
+#     C    = float(batt.capacity_kwh)
+#     eta_c, eta_d = float(batt.eta_c), float(batt.eta_d)
+#     soc_lo, soc_hi = float(batt.soc_min), float(batt.soc_max)
+#     soc0  = float(batt.soc_init)
+#     soc_tgt = soc0 if batt.soc_target is None else float(batt.soc_target)
+
+#     p_buy = np.asarray(day.prices_buy, dtype=float)
+#     load  = np.asarray(day.demand_kw, dtype=float)
+#     if day.allow_export:
+#         p_sell = np.asarray(day.prices_sell if day.prices_sell is not None else day.prices_buy, dtype=float)
+#     else:
+#         p_sell = None
+
+#     # Variables
+#     c   = cp.Variable(T, nonneg=True, name="charge_kw")
+#     d   = cp.Variable(T, nonneg=True, name="discharge_kw")
+#     imp = cp.Variable(T, nonneg=True, name="import_kw")
+#     exp = cp.Variable(T, nonneg=True, name="export_kw") if day.allow_export else None
+
+#     y_c = cp.Variable(T, boolean=True, name="y_charge")
+#     y_d = cp.Variable(T, boolean=True, name="y_discharge")
+
+#     soc = cp.Variable(T+1, name="soc")
+
+#     cons = [
+#         soc >= soc_lo, soc <= soc_hi,
+#         soc[0] == soc0, 
+#         soc[T] >= soc_tgt
+#     ]
+#     for t in range(T):
+#         cons += [
+#             c[t] <= batt.cmax_kw * y_c[t],
+#             d[t] <= batt.dmax_kw * y_d[t],
+#             y_c[t] + y_d[t] <= 1,
+#             soc[t+1] == soc[t] + (eta_c*c[t]*dt - (d[t]*dt)/eta_d)/C,
+#         ]
+#         net = load[t] + c[t] - d[t]
+#         if day.allow_export:
+#             cons += [imp[t] - exp[t] == net]
+#         else:
+#             cons += [imp[t] >= net]
+
+#     if day.allow_export:
+#         objective = cp.sum(p_buy * imp * dt) - cp.sum(p_sell * exp * dt)
+#     else:
+#         objective = cp.sum(p_buy * imp * dt)
+
+#     prob = cp.Problem(cp.Minimize(objective), cons)
+
+#     if solver is None:
+#         for cand in ["GUROBI", "CPLEX", "SCIPY", "CBC", "GLPK_MI", "ECOS_BB"]:
+#             if cand in cp.installed_solvers():
+#                 solver = cand
+#                 break
+
+#     if solver_opts is None:
+#         solver_opts = {}
+#     else:
+#         solver_opts = dict(solver_opts)  # ensure it's a dict
+
+#     # try:
+#     #     if solver:
+#     #         prob.solve(solver=solver, **solver_opts)  # ✅ Correct - use detected solver
+#     #     else:
+#     #         prob.solve(**solver_opts)
+#     # except Exception as e:
+#     #     return SolveResponse(
+#     #         status="error", 
+#     #         message=str(e),
+#     #         objective_cost=0.0  # Add this for error handling
+#     #     )
+
+#     try:
+#         if solver:
+#             prob.solve(solver=cp.GUROBI, **solver_opts)
+#         else:
+#             prob.solve(**solver_opts)  # may fail if default solver isn't MILP-capable
+#     except Exception as e:
+#         return SolveResponse(status="error", message=str(e))
+#     # can you write the decision list as well here in a simple for loop no need to do comprehension
+
+#     decision_list = []
+#     for t in range(T):
+#         if y_c.value[t] == 1:
+#             decision_list.append(y_c.value[t])
+#         elif y_d.value[t] == 1:
+#             decision_list.append(-1*y_d.value[t])
+#         else:
+#             decision_list.append(0)
+
+#     return SolveResponse(
+#         status=prob.status,
+#         objective_cost=float(prob.value) if prob.value is not None else None,
+#         charge_kw=c.value.tolist() if c.value is not None else None,
+#         discharge_kw=d.value.tolist() if d.value is not None else None,
+#         import_kw=imp.value.tolist() if imp.value is not None else None,
+#         export_kw=(exp.value.tolist() if (day.allow_export and exp is not None and exp.value is not None) else None),
+#         soc=soc.value.tolist() if soc.value is not None else None,
+#         decision=decision_list,
+#         confidence=[ max(y_c.value[t], y_d.value[t], 1 - y_c.value[t] - y_d.value[t]) for t in range(T)] if y_c.value is not None and y_d.value is not None else None,
+#     )
+
+
+
+# @mcp.tool()
+# def milp_solve(args: SolveRequest) -> SolveResponse:
+#     """Run day-ahead battery MILP and return schedules + cost."""
+#     return solve_daily_milp(args.battery, args.day, args.solver, args.solver_opts)
+
+# @mcp.tool()
+# def milp_solve_from_records(args: SolveFromRecordsRequest) -> SolveResponse:
+#     """Run day-ahead MILP given a list of EnergyDataRecord rows."""
+#     prices, demand = records_to_arrays(args.records)
+#     day = DayInputs(
+#         prices_buy=prices,
+#         demand_kw=demand,
+#         prices_sell=prices,
+#         allow_export=args.allow_export,
+#         dt_hours=args.dt_hours
+#     )
+#     return solve_daily_milp(args.battery, day, args.solver, args.solver_opts)
+
+# if __name__ == "__main__":
+#     mcp.run(transport="stdio")

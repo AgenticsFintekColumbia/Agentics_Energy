@@ -5,11 +5,26 @@ from dotenv import load_dotenv
 from loguru import logger
 from openai import AsyncOpenAI
 
+# from pydantic import BaseModel, Field
+# from typing import List, Optional, Dict
+
+# class SolveResponse(BaseModel):
+#     status: str 
+#     message: Optional[str] = None
+#     objective_cost: Optional[float] = Field(..., description="total objective cost i.e. sum of (price_sell times grid_export subtracted from price_buy times grid_import) multiplied by the sample time of operation dt_hours across all timestamps")
+#     charge_kw: Optional[List[float]] =Field(None, description="Battery charge schedule in kW")
+#     discharge_kw: Optional[List[float]] = Field(None, description="Battery discharge schedule in kW")
+#     import_kw: Optional[List[float]] = Field(None, description="Grid import schedule in kW")
+#     export_kw: Optional[List[float]] = Field(None, description="Grid export schedule in kW") #le=0 #class validators and also add constraints to ensure that the outputs make sense
+#     soc: Optional[List[float]] = Field(None, description="State of Charge (SoC) over time")
+#     decision: Optional[List[float]] = Field(None, description="Decision taken at each time step by the battery - charge (+1), discharge (-1), idle (0)")
+#     confidence: Optional[List[float]] = Field(None, description="Confidence level of each decision (0 to 1)")
+
 # Turbo Models gpt-oss:20b, deepseek-v3.1:671b
 
 load_dotenv()
 
-verbose = False
+verbose = True
 
 def get_llm_provider(provider_name: str = None) -> LLM:
     """
@@ -30,9 +45,9 @@ def get_llm_provider(provider_name: str = None) -> LLM:
         if len(available_llms) > 0:
             if verbose:
                 logger.debug(
-                    f"Available LLM providers: {list(available_llms)}. None specified, defaulting to '{list(available_llms)[0]}'"
+                    f"Available LLM providers: {list(available_llms)}. None specified, defaulting to '{list(available_llms)[2]}'"
                 )
-            return list(available_llms.values())[0]
+            return list(available_llms.values())[2]
         else:
             raise ValueError(
                 "No LLM is available. Please check your .env configuration."
@@ -64,14 +79,84 @@ ollama_llm = (
     else None
 )
 
+# ollama_llm = (
+#     LLM(
+#         model=os.getenv("OLLAMA_MODEL_ID"), 
+#         base_url="http://localhost:11434",
+#         temperature=0.1,
+#         max_tokens=1024,
+#         stop=["}}", "}\n", "\n}"]
+#     )
+#     if os.getenv("OLLAMA_MODEL_ID")
+#     else None
+# )
+
+# ollama_llm = (
+#     LLM(
+#         model=os.getenv("OLLAMA_MODEL_ID"), 
+#         base_url="http://localhost:11434",
+#         temperature=0.1,
+#         response_format={
+#             "type": "json_object",
+#             "schema": {
+#                 "type": "object",
+#                 "properties": {
+#                     "status": {"type": "string", "enum": ["success", "failure"]},
+#                     "message": {"type": "string"},
+#                     "objective_cost": {"type": "number"},
+#                     "charge_kw": {
+#                         "type": "array",
+#                         "items": {"type": "number"},
+#                         "minItems": 24,
+#                         "maxItems": 24
+#                     },
+#                     "discharge_kw": {
+#                         "type": "array",
+#                         "items": {"type": "number"},
+#                         "minItems": 24,
+#                         "maxItems": 24
+#                     },
+#                     "import_kw": {
+#                         "type": "array",
+#                         "items": {"type": "number"},
+#                         "minItems": 24,
+#                         "maxItems": 24
+#                     },
+#                     "export_kw": {
+#                         "type": "array",
+#                         "items": {"type": "number"},
+#                         "minItems": 24,
+#                         "maxItems": 24
+#                     },
+#                     "soc": {
+#                         "type": "array",
+#                         "items": {"type": "number"},
+#                         "minItems": 25,
+#                         "maxItems": 25
+#                     },
+#                     "decision": {
+#                         "type": "array",
+#                         "items": {"type": "integer", "enum": [-1, 0, 1]},
+#                         "minItems": 24,
+#                         "maxItems": 24
+#                     }
+#                 },
+#                 "required": ["status", "message", "objective_cost", "charge_kw", "discharge_kw", "import_kw", "export_kw", "soc", "decision"]
+#             }
+#         }
+#     )
+#     if os.getenv("OLLAMA_MODEL_ID")
+#     else None
+# )
+
 
 openai_llm = (
     LLM(
         model=os.getenv(
             "OPENAI_MODEL_ID", "openai/gpt-4"
         ),  # call model by provider/model_name
-        temperature=0.8,
-        top_p=0.9,
+        temperature=1,
+        # top_p=0.9,
         stop=["END"],
         api_key=os.getenv("OPENAI_API_KEY"),
         seed=42,
@@ -129,3 +214,5 @@ if gemini_llm:
     i += 1
 if openai_llm:
     available_llms["openai"] = openai_llm
+if ollama_llm:
+    available_llms["ollama"] = ollama_llm

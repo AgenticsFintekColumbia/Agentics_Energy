@@ -10,7 +10,9 @@ from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-from agentics import Agentics as AG
+# from agentics import agentics as AG
+from agentics.core.agentics import AG
+
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List, Union, Tuple, Literal
 import pandas as pd

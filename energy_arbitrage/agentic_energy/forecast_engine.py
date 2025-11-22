@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Union
 from datetime import datetime, timedelta
 
-from agentics import Agentics as AG
+# from agentics import agentics as AG
+from agentics.core.agentics import AG
+
 from .schemas import EnergyDataRecord, ForecastResult, ForecastMetrics, ForecastRecord
 from .data_loader import EnergyDataLoader
 

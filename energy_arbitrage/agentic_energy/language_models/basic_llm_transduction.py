@@ -4,7 +4,9 @@ import warnings
 import contextlib
 import io
 from dotenv import load_dotenv
-from agentics import Agentics as AG
+# from agentics import agentics as AG
+from agentics.core.agentics import AG
+
 import numpy as np
 
 from agentic_energy.schemas import (

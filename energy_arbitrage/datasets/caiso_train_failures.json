@@ -1,0 +1,390 @@
+[
+  {
+    "date": "2021-01-17",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-01-30",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-01-31",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-04",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-06",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-17",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-20",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-21",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-26",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-27",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-02-28",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-06",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-13",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-14",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-20",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-21",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-22",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-23",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-28",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-29",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-03-30",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-04-03",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-04-04",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-04-08",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-04-10",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-04-24",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-01",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-02",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-07",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-08",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-09",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-22",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-23",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-05-24",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-06-05",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-06-06",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-06-10",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-10-09",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2021-12-24",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-01-01",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-01-09",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-01-14",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-05",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-06",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-14",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-15",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-16",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-17",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-19",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-20",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-02-28",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-05",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-06",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-07",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-09",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-12",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-13",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-14",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-15",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-16",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-20",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-21",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-26",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-27",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-29",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-03-30",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-02",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-03",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-05",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-09",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-10",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-12",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-13",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-15",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-16",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-17",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-23",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-27",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-28",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-04-30",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-01",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-07",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-08",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-09",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-10",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-11",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-22",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-28",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-29",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-05-30",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-06-04",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-06-05",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-06-06",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-06-13",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-06-14",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-06-17",
+    "reason": "'NoneType' object is not subscriptable"
+  },
+  {
+    "date": "2022-07-03",
+    "reason": "'NoneType' object is not subscriptable"
+  }
+]
