@@ -1,167 +1,198 @@
-<h1 align="center">Agentics</h1>
-<h2 align="center">Transduction is all you need</h1>
-<p align="center">
-    <img src="https://raw.githubusercontent.com/IBM/Agentics/refs/heads/main/image.png" height="128">
-    <img src="https://raw.githubusercontent.com/IBM/Agentics/refs/heads/main/image.png" height="128">
-</p>
+# AlphaSearch :Agentic Energy Arbitrage with Battery Storage ⚡🤖
 
+This repository implements an **agentic AI pipeline** for daily battery arbitrage using:
 
-Agentics is a Python framework that provides structured, scalable, and semantically grounded agentic computation. It enables developers to build AI-powered pipelines where all operations are based on typed data transformations, combining the power of Pydantic models and LLMs with the flexibility of asynchronous execution.
+- A **MILP oracle** (via `agentic_energy`) for optimal charge/discharge decisions  
+- **CrewAI agents** to orchestrate optimization, reasoning, and visualization  
+- **MCP tools** that expose the MILP, Heuristics, Ollama, Gemini LLMs and plotting logic as tools callable by LLMs  
+- A suite of **Jupyter notebooks** for testing, debugging, and experimentation  
 
-## Getting started
+---
 
-Learn how to install Agentic, set up your environment, and run your first logical transduction. [Getting Started](docs/getting_started.md)
+## 🧱 High-Level Architecture
 
+![Agentic Energy Architecture](plots/EnArb_SeqFlowAgentic.png)
 
-## Authors
+<!-- The system is organized into **four layers**:
 
-- **Principal Investigator**
-    - *Alfio Massimiliano Gliozzo*, IBM Research, gliozzo@us.ibm.com
-- **Core Contributors**:
-    - *Junkyu Lee*, IBM Research, Junkyu.Lee@ibm.com
-    - *Naweed Aghmad Khan*, IBM Research, naweed.khan@ibm.com
-    - *Nahuel Defosse*, IBM Research, nahuel.defosse@ibm.com
-    - *Christodoulos Constantinides*, IBM Watson, Christodoulos.Constantinides@ibm.com
-    - *Mustafa Eyceoz*, RedHat, Mustafa.Eyceoz@partner.ibm.com
+### 1️⃣ Data Layer
 
+- **Storages**: battery specs, historical operations, and other asset data.  
+- **Markets**: price time series and related financial signals.  
+- **Consumer**: demand/load profiles and consumption patterns.  
+- **Sources**:
+  - Online datasheets (static URLs) for technical parameters.
+  - Local storage (databases, CSV files) for historical data.
+- **Config**: central place for capacity, SoC bounds, efficiency, and other model parameters.
 
+### 2️⃣ Forecast Layer
 
-Agentics is an implementation of **Logical Transduction Algebra**, described in 
-- Alfio Gliozzo, Naweed Khan, Christodoulos Constantinides,  Nandana Mihindukulasooriya, Nahuel Defosse, Junkyu Lee. *Transduction is All You Need for Structured Data Workflows. August 2025*, [arXiv:2508.15610](https://arxiv.org/abs/2508.15610)
+Takes raw data and produces **price and demand trajectories** used by the optimizer.
 
+- Models:
+  - **Gaussian noise** and simple baselines.
+  - **Random Forest (binned)** regressors for structured forecasts.
+  - **LSTM** sequence models for temporal dynamics.
+  - **TimeGPT / LLM-based forecaster** as a “Novel LLM as a Forecaster”.
+- Outputs:
+  - Forecasted buying/selling prices.
+  - Forecasted demand/load.
+  - Uncertainty that can be fed into robust optimization or RL.
 
-We welcome new AG entusiasts to extend this framework with new applications and extension to the language. 
+### 3️⃣ Optimizer Layer
 
+Given forecasts and constraints, this layer **computes the battery schedule**:
 
+- **Mixed Integer Linear Programming (MILP)**:  
+  - Hard constraints (SoC, power limits, efficiency, export rules).  
+  - Objective: minimize cost / maximize arbitrage profit.
+- **Reinforcement Learning (RL)**:
+  - Policy-based control for longer horizons or different reward shaping.
+- **Heuristics**:
+  - Simple rules or analytical baselines for comparison or warm-starts.
+- **Novel LLM as an Optimizer**:
+  - LLM that emulates the MILP solution (via QLoRA fine-tuning) and proposes feasible charge/discharge schedules.
 
+### 4️⃣ Reasoning Layer – Interactive Analyst & Explainer
 
-## 🚀 Key Features
+A top-level **agentic reasoning layer** that:
 
-**Typed Agentic Computation**: Define workflows over structured types using standard Pydantic schemas.
+- Orchestrates calls to:
+  - Data and forecast routines.
+  - MILP/RL/heuristic optimizers.
+  - Visualization tools.
+- Explains:
+  - Why a particular schedule was chosen.
+  - How SoC evolves over time.
+  - How profits, imports, and exports break down.
+- Powered by CrewAI + MCP tools (milp solver, reasoning tools, viz tools).
 
-**Logical Transduction (`<<`)**: Transform data between types using LLMs with few-shot examples, tools, and memory.
+--- -->
 
-**Async Mapping and Reduction**: Apply async mapping (`amap`) and aggregation (`areduce`) functions over datasets.
+---
 
-**Batch Execution & Retry**: Automatically handles batch-based asynchronous execution with graceful fallback.
+## 1. Prerequisites
 
-**Domain Customization**
-- **Prompt Templates**  Customize prompting behavior and add ad-hoc instructions
-- **Memory Augmentation**: Use retrieval-augmented memory to inform transduction.
+- **Python** ≥ 3.10 (3.11 recommended)
+- Recommended: **conda** (or mamba) for environment management
+- Optional but strongly recommended:
+  - A **Gurobi** license (for fast MILP solving)
+  - API keys for LLM providers (e.g. OpenAI, Gemini, Ollama)
 
-**Built-in Support for Tools**: Integrate LangChain tools or custom functions.
+---
 
+## 2. Create and Activate a Virtual Environment
 
-## Tutorial 
+You can use either **conda** or **venv**. Pick one.
 
-| Notebook |   Description |
-|----------| --------------- |
-| [LLMs](https://colab.research.google.com/github/IBM/Agentics/blob/main/tutorials/llms.ipynb) | Basics |
-| [Agentic Basics](https://colab.research.google.com/github/IBM/Agentics/blob/main/tutorials/agentics_basics.ipynb)         | Step by step guide illustrating how to make a new AG, access and print its content, import and export it to files            | 
-|[Transduction](https://colab.research.google.com/github/IBM/Agentics/blob/main/tutorials/transduction.ipynb) | Demonstrate the use of logical transduction  (`<<`) in Agentics |
-| [Amap Reduce](https://colab.research.google.com/github/IBM/Agentics/blob/main/tutorials/amap_reduce.ipynb) | Try out MapReduce in Agentics to scale out |
-| [MCP Tools](./tutorials/mcp_tools.ipynb) | |
+### Option A: Using `conda` (recommended)
 
-<!-- | [ATypes](https://colab.research.google.com/github/IBM/Agentics/blob/main/tutorials/atypes.ipynb) | | -->
-
-## 🚀 Documentation
-
-👉 [Getting Started](docs/getting_started.md): Learn how to install Agentic, set up your environment, and run your first logical transduction.
-
-🧠 [Agentics](docs/agentics.md): Explore how Agentics wraps `pydantic` models into transduction-ready agents. 
-
-🔁 [Transduction](docs/transduction.md): Discover how the `<<` operator implements logical transduction between types and how to control its behavior.
-
-🛠️ [Tools](docs/tools.md): Learn how to integrate external tools (e.g., LangChain, CrewAI) to provide access to external data necessary for logical transduction.
-
-## 📘 Example Usage
-```python
-from agentics import AG
-from pydantic import BaseModel
-
-class Answer(BaseModel):
-    answer: str
-    justification: str
-    confidence: float
-
-# Instantiate an Agentics object with a target type
-qa_agent = AG(atype=Answer)
-
-# Perform transduction from text prompts
-qa_agent = await (qa_agent << [
-    "Who is the president of the US?",
-    "When is the end of the world predicted?",
-    "This is a report from the US embassy"
-])
-
-# Access structured answers
-for result in qa_agent.states:
-    print(result.answer, result.confidence)
-
+```bash
+conda create -n agentics python=3.11 -y
+conda activate agentics
 ```
 
-### 🧠 Conceptual Overview
-
-Agentics models workflows as transformations between typed states. Each instance of Agentics includes:
-
-`atype`: A Pydantic model representing the schema.
-
-`states`: A list of objects of that type.
-
-Optional `llm`, `tools`, `prompt_template`, `memory`.
-
-#### Operations:
-
-`amap`(func): Applies an async function over each state.
-
-`areduce`(func): Reduces a list of states into a single value.
-
-`<<`: Performs logical transduction from source to target Agentics.
-
-#### 🔧 Advanced Usage
-
-##### Customizing Prompts
-
-agent.prompt_template = """
-You are an assistant that extracts key information.
-Please respond using the format {answer}, {justification}, {confidence}.
-"""
-
-# 📚 Documentation
-
-Full documentation and examples are available at:  
-
-# 🧪 Tests
-
-Run all tests using:
-
-`uv run pytest`
-
-
-# Examples
-
-Run all scripts in example folder using uv
-
-`uv run python examples/hello_world.py`
-
-## $ 📄 License
-
-Apache 2.0
-
-## 👥 Authors
-
-Developed by Alfio Gliozzo and contributors. 
-
-
-Contributions welcome!
-
-
-Core team  Alfio Gliozzo, Junkyu Lee, Naweed Aghmad, Nahuel Defosse, Christodoulos Constantinides, Mustafa Eyceoz and contributors.
-
-## Contributing
-
-Your commit messages should include the line:
-
-```shell
-Signed-off-by: Author Name <authoremail@example.com>
+### Option B: Using venv
+``` bash
+python -m venv agentics
+source agentics/bin/activate      # on macOS / Linux
+# .\agentics\Scripts\activate     # on Windows
 ```
+Once the environment is active, you’ll install the two local packages: agentics and agentic_energy.
+
+---
+
+## 3. Install the `agentics` Package
+
+From the root of this repo, go into the `agentics` folder and install it in editable mode:
+``` bash
+cd agentics
+pip install -e .
+```
+
+This makes the `agentics` Python package available in your environment while still pointing to the local source code (so code changes are immediately reflected).
+
+---
+
+## 4. Install the agentic_energy Package
+
+Next, install the core energy optimization package:
+``` bash
+cd ../agentic_energy
+pip install -e .
+```
+Again, -e installs in editable mode, ideal for active development.
+
+At this point, both:
+- `agentics`
+- `agentic_energy`
+should be importable in Python.
+
+You can quickly verify:
+``` bash
+python -c "import agentics, agentic_energy; print('OK:', agentics.__name__, agentic_energy.__name__)"
+```
+
+---
+
+## 5. Repository Structure (High-Level)
+
+A typical layout looks like:
+``` text
+Agentics_for_EnergyArbitrage_Battery/
+├── agentics/                 # Agent orchestration, CrewAI/MCP integration
+├── agentic_energy/           # MILP models, schemas, data loaders, MCP servers
+├── notebooks/                # Jupyter notebooks for experiments & testing
+├── battery_agent_crewai.py   # Main entrypoint for the CrewAI battery agent
+└── README.md
+```
+
+`notebooks/` folder
+
+The `notebooks/` directory contains testable notebooks that let you:
+- Run the MILP battery arbitrage logic directly
+- Inspect price / SoC trajectories
+- Debug & validate the underlying optimization and data-loading
+- Prototype new ideas before integrating them into the agentic pipeline
+
+These are a good place to start if you want to understand the core math and optimization with and without the agentic layer on top. 
+
+Following is an example plot which you may see that shows when to charge and discharge your storage based on the price volatility.
+
+![Battery Decisions](plots/Result_ToView.png)
+
+
+---
+
+## 6. Running the Agentic Battery Orchestrator
+
+Once your environment is set up and both packages are installed:
+
+1. Go back to the project root (if you’re not already there):
+``` bash
+cd ../   # ensure you're back at Agentics_for_EnergyArbitrage_Battery
+```
+2. Run the main CrewAI script:
+``` bash
+python battery_agent_crewai.py
+```
+
+What this script does:
+1. Starts the MCP servers:
+- MILP tools (e.g. milp_solve, milp_solve_from_records)
+- Reasoning tools (e.g. explanations, step-by-step reasoning)
+- Visualization tools (e.g. plot_price_soc)
+
+2. Launches the Battery Optimizer agent via CrewAI
+3. Orchestrates a full run:
+- Builds a SolveRequest (battery params + price/demand data)
+- Calls the MILP solver through MCP
+- Collects the optimal schedule (charge, discharge, SoC, costs)
+- Returns a structured result that can be logged, visualized, or compared to other baselines (RL, heuristics, etc.)
+
+If configured, you’ll see logs such as:
+
+- Available LLM providers (gemini, openai, ollama)
+- MCP servers connecting and listing tools
+- The CrewAI “Crew Execution Started” banner
+- Tool calls like Using Tool: milp_solve and the resulting objective and schedule

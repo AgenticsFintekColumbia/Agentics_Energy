@@ -1,0 +1,14 @@
+FROM ./qwen-milp-q4.gguf
+
+PARAMETER temperature 0
+PARAMETER top_p 0.9
+
+TEMPLATE """
+<|im_start|>system
+{{ .System }}
+<|im_end|>
+<|im_start|>user
+{{ .Prompt }}
+<|im_end|>
+<|im_start|>assistant
+"""

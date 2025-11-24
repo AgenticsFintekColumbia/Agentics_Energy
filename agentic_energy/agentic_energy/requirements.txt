@@ -1,0 +1,15 @@
+agentics==0.2.2
+crewai_tools==1.5.0
+cvxpy==1.7.3
+gymnasium==1.1.1
+mcp==1.22.0
+numpy==2.3.5
+pandas==2.3.3
+pydantic==2.12.4
+python-dotenv==1.2.1
+ray==2.50.0
+torch==2.4.1
+
+#cool way of generating requirements.txt
+#pip install pipreqs
+# pipreqs agentic_energy --force

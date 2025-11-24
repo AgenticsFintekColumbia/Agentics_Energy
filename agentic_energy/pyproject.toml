@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-energy"
+version = "0.1.0"
+description = "Energy arbitrage tools on top of Agentics"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "agentics-py>=0.0.0",        # ✅ THIS is your Agentics dependency
+    "numpy",
+    "pandas",
+    "cvxpy",
+    "pydantic",
+    "python-dotenv",
+    "mcp",
+    "fastmcp",
+    "crewai",
+    "crewai-tools",
+]
+
+[tool.setuptools]
+packages = ["agentic_energy"]

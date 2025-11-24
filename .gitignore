@@ -4,6 +4,9 @@ dist/
 *.egg-info/
 .pytest_cache/
 *.pyc
+*.pyo
+*.pyd
+*.so
 *.py[cod]
 .DS_Store
 
@@ -13,6 +16,36 @@ dist/
 # Environments
 .env
 .venv
+venv/
+env/
+*.env
+
+#jupyter Notebook
+.ipynb_checkpoints
+
+#Large Data
+*.csv
+*.tsv
+*.json
+*.jsonl
+*.ndjson
+*.parquet
+*.zip
+*.gguf
+*.jinja
+*.safetensors
+*.pkl
+*.pickle
+*.joblib
+*.mp4
+
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.onnx
 
 # mypy
 .mypy_cache/
@@ -25,6 +58,13 @@ dmypy.json
 /coverage.xml
 /.coverage
 
+# Outputs
+runs/
+output_files/
+plots/
+wandb/
+mlruns/
+logs/
 
 # Agentics
 agentics.code-workspace
@@ -33,6 +73,8 @@ report.html
 
 # IDE
 .vscode
+.DS_Store
+Thumbs.db
 
 # local folders
 __*__/
