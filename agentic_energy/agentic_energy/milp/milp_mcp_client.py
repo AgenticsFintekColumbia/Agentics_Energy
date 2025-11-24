@@ -74,7 +74,7 @@ async def main():
                 raise RuntimeError("Tool has no callable interface")
 
             # Call the optimization
-            raw = call_fn(args=req.model_dump())
+            raw = call_fn(solverequest=req.model_dump())
             
             # Parse response correctly (raw is already a dict, not JSON string)
             try:

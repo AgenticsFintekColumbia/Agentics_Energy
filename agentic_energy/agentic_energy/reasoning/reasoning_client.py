@@ -126,7 +126,7 @@ async def main():
                 raise RuntimeError("Reasoning tool has no callable interface")
 
             # Call the reasoning tool
-            raw = call_fn(args=r_req.model_dump())
+            raw = call_fn(reasoningrequest=r_req.model_dump())
             print(raw)
             # Parse response
             try:
