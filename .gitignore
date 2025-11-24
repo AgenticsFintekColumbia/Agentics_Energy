@@ -61,7 +61,6 @@ dmypy.json
 # Outputs
 runs/
 output_files/
-plots/
 wandb/
 mlruns/
 logs/
