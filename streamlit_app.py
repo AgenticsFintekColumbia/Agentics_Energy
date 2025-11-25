@@ -164,6 +164,7 @@ def answer_chat(prompt: str, context: str = "") -> str:
             + "\n\nUser:\n"
             + prompt
         )
+        # zero-shot 
         response = struct_llm.call(prompt)
         response_dict = json.loads(response)
         question = Question.model_validate(response_dict)
