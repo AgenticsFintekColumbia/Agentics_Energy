@@ -20,6 +20,7 @@ from agentic_energy.schemas import (
     SolveResponse,
     PlotRequest,
     PlotResponse,
+    PriceForecastPlotRequest,
     ReasoningRequest,
     ReasoningResponse,
 )
@@ -375,7 +376,12 @@ with col_results:
                 st.markdown(summary)
 
                 if plot_response.image_path and os.path.exists(plot_response.image_path):
-                    st.image(plot_response.image_path, caption=plot_response.caption)
+                    # Check if it's a video file (mp4/gif) or image file
+                    if plot_response.image_path.endswith(('.mp4', '.gif')):
+                        st.video(plot_response.image_path)
+                        st.caption(plot_response.caption)
+                    else:
+                        st.image(plot_response.image_path, caption=plot_response.caption)
                 else:
                     st.warning(
                         f"Plot generated, but file not found at `{plot_response.image_path}`."
@@ -407,7 +413,12 @@ with col_results:
         if st.session_state.last_plot is not None:
             pr = st.session_state.last_plot
             if pr.image_path and os.path.exists(pr.image_path):
-                st.image(pr.image_path, caption=pr.caption)
+                # Check if it's a video file (mp4/gif) or image file
+                if pr.image_path.endswith(('.mp4', '.gif')):
+                    st.video(pr.image_path)
+                    st.caption(pr.caption)
+                else:
+                    st.image(pr.image_path, caption=pr.caption)
             else:
                 st.info("Plot info available but image file not found.")
     else:

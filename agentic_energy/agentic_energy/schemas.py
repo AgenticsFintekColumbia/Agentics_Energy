@@ -122,6 +122,16 @@ class ReasoningResponse(BaseModel): # all to optional, and assign to None if pos
         default_factory=dict,
         description="Relevant numerical data supporting the explanation (e.g., price_delta, soc_margin)"
     )
+class PriceForecastPlotRequest(BaseModel):
+    """Inputs needed to visualize price forecast and arbitrage potential."""
+    prices: List[float] = Field(..., description="Forecasted prices for the day")
+    dt_hours: float = Field(1.0, description="Timestep size in hours")
+    title: str = "Price Forecast - Arbitrage Potential"
+    out_path: Optional[str] = Field(
+        default=None,
+        description="Where to save the PNG file. Default: ./plots/price_forecast.png",
+    )
+
 class PlotRequest(BaseModel):
     """Inputs needed to draw price vs SoC plot."""
     solve_request: SolveRequest = Field(..., description="Original solve request")
