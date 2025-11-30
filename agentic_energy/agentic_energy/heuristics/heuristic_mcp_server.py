@@ -1,6 +1,3 @@
-# agentic_energy/heuristics/heuristic_mcp_server.py
-
-from __future__ import annotations
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -21,13 +18,13 @@ _quantile_trader = HeuristicTrader(mode="quantile")
 
 
 @mcp.tool()
-def heuristic_time_solve(args: SolveRequest) -> SolveResponse:
+def heuristic_time_solve(solverequest: SolveRequest) -> SolveResponse:
     """
     Run the time-window heuristic controller for a single day.
 
     Notes:
       - Uses HeuristicTrader(mode="time").
-      - You can override charge/discharge windows via args.solver_opts, e.g.:
+      - You can override charge/discharge windows via solverequest.solver_opts, e.g.:
           solver_opts = {
               "mode": "time",
               "charge_windows": [(1, 5), (11, 15)],
@@ -35,20 +32,20 @@ def heuristic_time_solve(args: SolveRequest) -> SolveResponse:
           }
     """
     # Ensure solver_opts.mode is set to "time" if user passes solver string
-    if args.solver and (args.solver_opts is None or "mode" not in args.solver_opts):
-        solver_opts = dict(args.solver_opts or {})
+    if solverequest.solver and (solverequest.solver_opts is None or "mode" not in solverequest.solver_opts):
+        solver_opts = dict(solverequest.solver_opts or {})
         solver_opts["mode"] = "time"
-        args = SolveRequest(
-            battery=args.battery,
-            day=args.day,
-            solver=args.solver,
+        solverequest = SolveRequest(
+            battery=solverequest.battery,
+            day=solverequest.day,
+            solver=solverequest.solver,
             solver_opts=solver_opts,
         )
-    return _time_trader.solve(args)
+    return _time_trader.solve(solverequest)
 
 
 @mcp.tool()
-def heuristic_time_solve_from_records(args: SolveFromRecordsRequest) -> SolveResponse:
+def heuristic_time_solve_from_records(solverequest: SolveFromRecordsRequest) -> SolveResponse:
     """
     Run the time-window heuristic given a list of EnergyDataRecord rows.
 
@@ -56,49 +53,49 @@ def heuristic_time_solve_from_records(args: SolveFromRecordsRequest) -> SolveRes
       - Uses HeuristicTrader(mode="time").
       - Records are converted to prices/demand internally by the trader.
     """
-    if args.solver and (args.solver_opts is None or "mode" not in args.solver_opts):
-        solver_opts = dict(args.solver_opts or {})
+    if solverequest.solver and (solverequest.solver_opts is None or "mode" not in solverequest.solver_opts):
+        solver_opts = dict(solverequest.solver_opts or {})
         solver_opts["mode"] = "time"
-        args = SolveFromRecordsRequest(
-            battery=args.battery,
-            records=args.records,
-            dt_hours=args.dt_hours,
-            allow_export=args.allow_export,
-            prices_sell=args.prices_sell,
-            solver=args.solver,
+        solverequest = SolveFromRecordsRequest(
+            battery=solverequest.battery,
+            records=solverequest.records,
+            dt_hours=solverequest.dt_hours,
+            allow_export=solverequest.allow_export,
+            prices_sell=solverequest.prices_sell,
+            solver=solverequest.solver,
             solver_opts=solver_opts,
         )
-    return _time_trader.solve_from_records(args)
+    return _time_trader.solve_from_records(solverequest)
 
 
 @mcp.tool()
-def heuristic_quantile_solve(args: SolveRequest) -> SolveResponse:
+def heuristic_quantile_solve(solverequest: SolveRequest) -> SolveResponse:
     """
     Run the quantile-based heuristic controller for a single day.
 
     Notes:
       - Uses HeuristicTrader(mode="quantile").
-      - You can override quantiles via args.solver_opts, e.g.:
+      - You can override quantiles via solverequest.solver_opts, e.g.:
           solver_opts = {
               "mode": "quantile",
               "low_q": 0.25,
               "high_q": 0.75,
           }
     """
-    if args.solver and (args.solver_opts is None or "mode" not in args.solver_opts):
-        solver_opts = dict(args.solver_opts or {})
+    if solverequest.solver and (solverequest.solver_opts is None or "mode" not in solverequest.solver_opts):
+        solver_opts = dict(solverequest.solver_opts or {})
         solver_opts["mode"] = "quantile"
-        args = SolveRequest(
-            battery=args.battery,
-            day=args.day,
-            solver=args.solver,
+        solverequest = SolveRequest(
+            battery=solverequest.battery,
+            day=solverequest.day,
+            solver=solverequest.solver,
             solver_opts=solver_opts,
         )
-    return _quantile_trader.solve(args)
+    return _quantile_trader.solve(solverequest)
 
 
 @mcp.tool()
-def heuristic_quantile_solve_from_records(args: SolveFromRecordsRequest) -> SolveResponse:
+def heuristic_quantile_solve_from_records(solverequest: SolveFromRecordsRequest) -> SolveResponse:
     """
     Run the quantile-based heuristic given a list of EnergyDataRecord rows.
 
@@ -106,19 +103,19 @@ def heuristic_quantile_solve_from_records(args: SolveFromRecordsRequest) -> Solv
       - Uses HeuristicTrader(mode="quantile").
       - Records are converted to prices/demand internally by the trader.
     """
-    if args.solver and (args.solver_opts is None or "mode" not in args.solver_opts):
-        solver_opts = dict(args.solver_opts or {})
+    if solverequest.solver and (solverequest.solver_opts is None or "mode" not in solverequest.solver_opts):
+        solver_opts = dict(solverequest.solver_opts or {})
         solver_opts["mode"] = "quantile"
-        args = SolveFromRecordsRequest(
-            battery=args.battery,
-            records=args.records,
-            dt_hours=args.dt_hours,
-            allow_export=args.allow_export,
-            prices_sell=args.prices_sell,
-            solver=args.solver,
+        solverequest = SolveFromRecordsRequest(
+            battery=solverequest.battery,
+            records=solverequest.records,
+            dt_hours=solverequest.dt_hours,
+            allow_export=solverequest.allow_export,
+            prices_sell=solverequest.prices_sell,
+            solver=solverequest.solver,
             solver_opts=solver_opts,
         )
-    return _quantile_trader.solve_from_records(args)
+    return _quantile_trader.solve_from_records(solverequest)
 
 
 if __name__ == "__main__":

@@ -108,7 +108,7 @@ async def main():
             if call_fn_time is None:
                 raise RuntimeError("heuristic_time_solve tool has no callable interface")
 
-            raw_time = call_fn_time(args=req_time.model_dump())
+            raw_time = call_fn_time(solverequest=req_time.model_dump())
 
             try:
                 if isinstance(raw_time, dict):
@@ -128,6 +128,7 @@ async def main():
                     total_discharge = sum(res_time.discharge_MW)
                     print(f"🔋 Total charging:   {total_charge:.2f} MWh")
                     print(f"⚡ Total discharging: {total_discharge:.2f} MWh")
+                    print(f"SoC_length", len(res_time.soc) if res_time.soc else "N/A")
 
             except Exception as parse_error:
                 print(f"❌ Error parsing time-heuristic response: {parse_error}")
@@ -158,7 +159,7 @@ async def main():
             if call_fn_quant is None:
                 raise RuntimeError("heuristic_quantile_solve tool has no callable interface")
 
-            raw_quant = call_fn_quant(args=req_quant.model_dump())
+            raw_quant = call_fn_quant(solverequest=req_quant.model_dump())
 
             try:
                 if isinstance(raw_quant, dict):
@@ -178,11 +179,14 @@ async def main():
                     total_discharge = sum(res_quant.discharge_MW)
                     print(f"🔋 Total charging:   {total_charge:.2f} MWh")
                     print(f"⚡ Total discharging: {total_discharge:.2f} MWh")
+                    print(f"SoC_length", len(res_quant.soc) if res_quant.soc else "N/A")
+
 
             except Exception as parse_error:
                 print(f"❌ Error parsing quantile-heuristic response: {parse_error}")
                 print(f"🔍 Raw response type: {type(raw_quant)}")
                 print(f"🔍 Raw response: {raw_quant}")
+
 
     except Exception as e:
         print(f"💥 MCP heuristic client error: {e}")

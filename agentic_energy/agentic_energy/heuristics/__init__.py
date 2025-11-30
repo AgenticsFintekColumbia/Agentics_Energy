@@ -1,1 +1,2 @@
 from .heuristic_trader import HeuristicTrader, records_to_arrays, run_heuristic_day
+from .heuristic_mcp_server import heuristic_time_solve, heuristic_time_solve_from_records, heuristic_quantile_solve, heuristic_quantile_solve_from_records

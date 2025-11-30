@@ -194,7 +194,7 @@ class HeuristicTrader:
             discharge_MW=discharge_MW.tolist(),
             import_MW=import_MW.tolist(),
             export_MW=(export_MW.tolist() if day.allow_export else None),
-            soc=soc_series[1:].tolist(),   # SoC per step, fractional
+            soc=soc_series[:].tolist(),   # SoC per step, fractional
             decision=decision.tolist(),
             confidence=None,
         )
@@ -315,7 +315,7 @@ class HeuristicTrader:
             discharge_MW=disch.tolist(),
             import_MW=imp.tolist(),
             export_MW=(exp.tolist() if allow_export else None),
-            soc=soc_series[1:].tolist(),  # FRACTION per step
+            soc=soc_series[:].tolist(),  # FRACTION per step
             decision=decision.tolist(),
             confidence=None,
         )

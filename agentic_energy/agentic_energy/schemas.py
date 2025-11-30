@@ -106,6 +106,29 @@ class ForecastResult(BaseModel):
     metrics: ForecastMetrics = Field(description="Forecast quality metrics")
     forecasts: List[ForecastRecord] = Field(description="Individual forecast records")
 
+# Schemas (copied here to avoid package import)
+class ForecastFeatures(BaseModel):
+    temperature: float
+    radiation_direct_horizontal: float
+    radiation_diffuse_horizontal: float
+    hour: int = Field(ge=1, le=24)
+    month: int = Field(ge=1, le=12)
+    is_weekday: int = Field(ge=0, le=1)
+    is_holiday: int = Field(ge=0, le=1)
+
+class ForecastRequest(BaseModel):
+    target: str
+    model_type: str
+    features: List[ForecastFeatures]
+    timestamps: Optional[List[str]] = None
+
+class ForecastResponse(BaseModel):
+    # target: str
+    # model_type: str
+    predictions: List[float]
+    # timestamps: Optional[List[str]] = None
+    # num_predictions: int
+
 class ReasoningRequest(BaseModel):
     """Input schema for the reasoning system""" # explain it in. a more meaningful way. - Use llm to ophrase it in a better way.
     solve_request: SolveRequest = Field(description="Original solve request with battery parameters and inputs")
@@ -122,19 +145,30 @@ class ReasoningResponse(BaseModel): # all to optional, and assign to None if pos
         default_factory=dict,
         description="Relevant numerical data supporting the explanation (e.g., price_delta, soc_margin)"
     )
+
+class PriceForecastPlotRequest(BaseModel):
+    """Inputs needed to visualize price forecast and arbitrage potential."""
+    prices: List[float] = Field(..., description="Forecasted prices for the day")
+    dt_hours: float = Field(1.0, description="Timestep size in hours")
+    # title: str = "Price Forecast - Arbitrage Potential"
+    out_path: Optional[str] = Field(
+        default=None,
+        description="Where to save the PNG file. Default: ./plots/price_forecast.png",
+    )
+
 class PlotRequest(BaseModel):
     """Inputs needed to draw price vs SoC plot."""
-    solve_request: SolveRequest = Field(..., description="Original solve request")
-    solve_response: SolveResponse = Field(..., description="Solver output")
-    title: str = "Prices vs State of Charge (SoC) Over Time"
+    solve_request: SolveRequest = Field(None, description="Original solve request")
+    solve_response: SolveResponse = Field(None, description="Solver output")
+    # title: str = "Prices vs State of Charge (SoC) Over Time"
     out_path: Optional[str] = Field(
         default=None,
         description="Where to save the PNG file. Default: ./plots/battery_schedule.png",
     )
 
 class PlotResponse(BaseModel):
-    image_path: str = Field(..., description="Path to the saved PNG file")
-    caption: str = Field(..., description="Short description of what the plot shows")
+    image_path: Optional[str] = Field(None, description="Path to the saved PNG file")
+    caption: Optional[str] = Field(None, description="Short description of what the plot shows")
 
 
 # from pydantic import BaseModel, Field
