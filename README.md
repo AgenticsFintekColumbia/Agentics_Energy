@@ -69,19 +69,121 @@ A top-level **agentic reasoning layer** that:
 
 --- -->
 
+## 1. 🚀 Deployment Information
+
+- **Project Slug:** `agenticsenergy-streamlit`  
+- **Main Entry File:** `app.py`  
+- **Default Port:** `8501`  
+- **Environment Name (Conda/Mamba):** `agentics`  
+- **Base Image Used in Docker:** `mambaorg/micromamba:1.5.8`  
+
+
+---
+## 2. 🔧 Environment Variables Required
+
+These variables must be set for **both local and Docker deployments**.
+
+
+#### **LLM / Gemini Configuration**
+
+| Variable           | Description                |
+|-------------------|----------------------------|
+| `GOOGLE_API_KEY`  | Your Gemini API Key        |
+| `GEMINI_MODEL_ID` | Default: `gemini/gemini-2.0-flash` |
+
+#### **Gurobi Web License Service (WLS)**
+
+| Variable           | Description              |
+|-------------------|--------------------------|
+| `GRB_WLSACCESSID` | Gurobi WLS Access ID     |
+| `GRB_WLSSECRET`   | Gurobi WLS Secret        |
+| `GRB_LICENSEID`   | Numeric License ID       |
+
+> **Note:** You do **not** need a `gurobi.lic` file when using WLS.
+
 ---
 
-## 1. Prerequisites
+## 3. 🛠 Local Development Setup
 
-- **Python** ≥ 3.10 (3.11 recommended)
-- Recommended: **conda** (or mamba) for environment management
-- Optional but strongly recommended:
-  - A **Gurobi** license (for fast MILP solving)
-  - API keys for LLM providers (e.g. OpenAI, Gemini, Ollama)
+### 3.1 Create and Activate Environment  
+
+**Using Conda:**
+
+```bash
+conda env create -f environment.yml -n agentics
+conda activate agentics
+```
+
+or **using micromamba:**
+
+```bash
+micromamba create -n agentics -f environment.yml
+micromamba activate agentics
+```
+
+### 3.2 Install System Tools
+
+For Ubuntu/macOS:
+```bash
+sudo apt-get update
+sudo apt-get install -y git build-essential
+```
+
+### 3.3 Install the Project in Editable Mode
+
+```bash
+pip install --upgrade pip
+pip install -e ./agentics
+pip install -e ./agentic_energy
+```
+
+### 3.4 Set Environment Variables
+
+```bash
+export GOOGLE_API_KEY="your_key"
+export GEMINI_MODEL_ID="gemini/gemini-2.0-flash"
+
+export GRB_WLSACCESSID="your_wls_id"
+export GRB_WLSSECRET="your_wls_secret"
+export GRB_LICENSEID="your_license"
+```
+
+### 3.5 Run the Streamlit App
+
+```bash
+streamlit run app.py --server.port=8501
+```
 
 ---
 
-## 2. Create and Activate a Virtual Environment
+## 4. 🐳 Docker Deployment
+
+### 4.1 📦 Build the Image
+
+```bash
+docker build -t agenticsenergy-streamlit .
+```
+
+### 4.2 ▶️ Run the Container
+
+```bash
+docker run --rm \
+  -p 8501:8501 \
+  -e GRB_WLSACCESSID="your-wls-id" \
+  -e GRB_WLSSECRET="your-wls-secret" \
+  -e GRB_LICENSEID="your-license-id" \
+  -e GOOGLE_API_KEY="your-gemini-api-key" \
+  -e GEMINI_MODEL_ID="gemini/gemini-2.0-flash" \
+  agenticsenergy-streamlit
+```
+
+Then open : 
+```bash
+http://localhost:8501
+```
+
+
+<!-- #### 2. Create and Activate a Virtual Environment
 
 You can use either **conda** or **venv**. Pick one.
 
@@ -131,7 +233,7 @@ should be importable in Python.
 You can quickly verify:
 ``` bash
 python -c "import agentics, agentic_energy; print('OK:', agentics.__name__, agentic_energy.__name__)"
-```
+``` --> 
 
 ---
 

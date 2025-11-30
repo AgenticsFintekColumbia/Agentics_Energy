@@ -1,0 +1,26 @@
+name: agentics
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.11,<3.13
+  - ipykernel
+  - pydantic
+  - python-dotenv
+  - numpy
+  - cvxpy
+  - gymnasium
+  - pytorch
+  - ffmpeg
+  - pip
+  - pip:
+      - crewai
+      - crewai_tools
+      - crewai[litellm]
+      - crewai[google-genai]
+      - pandas
+      - matplotlib
+      - mcp
+      - fastmcp
+      - gurobipy
+      - streamlit
