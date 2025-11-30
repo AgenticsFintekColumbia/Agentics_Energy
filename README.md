@@ -88,7 +88,7 @@ These variables must be set for **both local and Docker deployments**.
 
 | Variable           | Description                |
 |-------------------|----------------------------|
-| `GOOGLE_API_KEY`  | Your Gemini API Key        |
+| `GEMINI_API_KEY`  | Your Gemini API Key        |
 | `GEMINI_MODEL_ID` | Default: `gemini/gemini-2.0-flash` |
 
 #### **Gurobi Web License Service (WLS)**
@@ -140,7 +140,7 @@ pip install -e ./agentic_energy
 ### 3.4 Set Environment Variables
 
 ```bash
-export GOOGLE_API_KEY="your_key"
+export GEMINI_API_KEY="your_key"
 export GEMINI_MODEL_ID="gemini/gemini-2.0-flash"
 
 export GRB_WLSACCESSID="your_wls_id"
@@ -172,7 +172,7 @@ docker run --rm \
   -e GRB_WLSACCESSID="your-wls-id" \
   -e GRB_WLSSECRET="your-wls-secret" \
   -e GRB_LICENSEID="your-license-id" \
-  -e GOOGLE_API_KEY="your-gemini-api-key" \
+  -e GEMINI_API_KEY="your-gemini-api-key" \
   -e GEMINI_MODEL_ID="gemini/gemini-2.0-flash" \
   agenticsenergy-streamlit
 ```
