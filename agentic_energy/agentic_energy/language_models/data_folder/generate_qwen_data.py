@@ -25,6 +25,7 @@ import json
 from pathlib import Path
 from typing import List
 from datetime import datetime
+import numpy as np
 
 import pandas as pd
 from dotenv import find_dotenv, load_dotenv
@@ -37,11 +38,11 @@ from agentic_energy.schemas import BatteryParams, DayInputs, EnergyDataRecord, S
 
 
 # ---------- CONFIG ----------
-REGION = "ITALY_TEST"
+REGION = "ITALY"
 if "TEST" in REGION:
-    OUTPUT_JSONL = Path(f"data_folder/test_qwen_soc_{REGION}.jsonl")
+    OUTPUT_JSONL = Path(f"test_qwen_soc_{REGION}.jsonl")
 else:
-    OUTPUT_JSONL = Path(f"data_folder/train_qwen_soc_{REGION}.jsonl")
+    OUTPUT_JSONL = Path(f"train_qwen_soc_{REGION}.jsonl")
 
 DATAPOINTS_in_HOUR = 1  #  data is hourly
 DT_HOURS = 1.0/DATAPOINTS_in_HOUR          #  data is hourly
@@ -153,7 +154,6 @@ async def main():
                 dt_hours=records.dt_hours
             )
             sol = solve_daily_milp(records.battery, day, records.solver, records.solver_opts)
-            batterydetails.soc_init=sol.soc[-1]
 
             # Build user_message and assistant_message
             user_message = build_user_message(
@@ -162,6 +162,8 @@ async def main():
                 dt_hours=DT_HOURS,
                 allow_export=ALLOW_EXPORT,
             )
+            
+            batterydetails.soc_init= np.round((np.random.rand() + 1e-12) % 1,2)
 
             assistant_message = build_assistant_message(sol, include_cost=True)
 
