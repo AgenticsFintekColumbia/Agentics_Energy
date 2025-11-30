@@ -148,7 +148,7 @@ export GRB_WLSSECRET="your_wls_secret"
 export GRB_LICENSEID="your_license"
 ```
 
-### 3.5 Run the Streamlit App
+### 3.5 Run the Streamlit App 🎨⚡ 
 
 ```bash
 streamlit run app.py --server.port=8501
@@ -290,22 +290,6 @@ If configured, you’ll see logs such as:
 - MCP servers connecting and listing tools
 - The CrewAI “Crew Execution Started” banner
 - Tool calls like Using Tool: milp_solve and the resulting objective and schedule
-
----
-
-## 7. Running the Streamlit Demo 🎨⚡ 
-
-The Streamlit app is the best way to interact with AlphaSearch.
-
-From project root, run :
-```bash
-streamlit run app.py
-```
-
-This launches an interactive interface that supports:
-- Asking natural language queries
-- Full pipeline orchestration
-- persistent run history
 
 
 ## 👨‍💻 Authors & Contributors
