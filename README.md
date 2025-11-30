@@ -178,17 +178,9 @@ python battery_agent_crewai.py
 ```
 
 What this script does:
-1. Starts the MCP servers:
-- MILP tools (e.g. milp_solve, milp_solve_from_records)
-- Reasoning tools (e.g. explanations, step-by-step reasoning)
-- Visualization tools (e.g. plot_price_soc)
-
+1. Starts the MCP servers 
 2. Launches the Battery Optimizer agent via CrewAI
-3. Orchestrates a full run:
-- Builds a SolveRequest (battery params + price/demand data)
-- Calls the MILP solver through MCP
-- Collects the optimal schedule (charge, discharge, SoC, costs)
-- Returns a structured result that can be logged, visualized, or compared to other baselines (RL, heuristics, etc.)
+3. Orchestrates a full run.
 
 If configured, you’ll see logs such as:
 
@@ -196,3 +188,60 @@ If configured, you’ll see logs such as:
 - MCP servers connecting and listing tools
 - The CrewAI “Crew Execution Started” banner
 - Tool calls like Using Tool: milp_solve and the resulting objective and schedule
+
+---
+
+## 7. Running the Streamlit Demo 🎨⚡ 
+
+The Streamlit app is the best way to interact with AlphaSearch.
+
+From project root, run :
+```bash
+streamlit run app.py
+```
+
+This launches an interactive interface that supports:
+- Asking natural language queries
+- Full pipeline orchestration
+- persistent run history
+
+
+## 👨‍💻 Authors & Contributors
+
+- **Millend Roy** 
+- **Vlad Pyltsov** 
+- **Marcel Ayora I. Mexia** 
+
+
+## 📄 License
+
+This repository is released under the **MIT License**,  You are free to use, extend, or integrate this work into your own projects, as long as you preserve the original copyright notice.
+
+For full details, see the [`LICENSE`](./LICENSE) file.
+
+## 🤝 Contributing
+
+Contributions are most welcome!
+
+If you want to contribute to **AlphaSearch**, here are the ways you can help:
+
+- Fix bugs, improve documentation, or optimize components  
+- Add new forecasting models (RF, LSTM, transformers, TimeGPT, etc.)  
+- Extend MILP, RL, or heuristic optimizers  
+- Improve the Streamlit UI or plotting  
+- Add new MCP tools or agentic reasoning modules
+
+To contribute:
+
+1. Fork the repo  
+2. Create a feature branch  
+3. Submit a pull request
+
+We will review PRs promptly and collaborate to improve the project together.
+
+## 📚 Citation
+
+If you use AlphaSearch in academic work or publications, please cite: 
+```
+pending
+```
