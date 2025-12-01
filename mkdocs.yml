@@ -1,0 +1,53 @@
+site_name: AlphaSearch – Agentic Energy Arbitrage
+site_description: Agentic AI pipeline for battery arbitrage with MILP, RL, and LLM orchestration.
+site_url: https://agenticsfintekcolumbia.github.io/Agentics_Energy/
+repo_name: AgenticsFintekColumbia/Agentics_Energy
+repo_url: https://github.com/AgenticsFintekColumbia/Agentics_Energy
+edit_uri: blob/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - scheme: slate
+      primary: teal
+      accent: light green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: teal
+      accent: light green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Architecture: architecture.md
+  - Agents & Tools: agents_and_tools.md
+  - Deployment: deployment.md
+  - Contributing: contributing.md
+  - FAQ: faq.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.emoji
+
+plugins:
+  - search

@@ -13,6 +13,7 @@ dependencies:
   - pytorch
   - ffmpeg
   - pip
+  - mkdocs-material
   - pip:
       - crewai
       - crewai_tools
