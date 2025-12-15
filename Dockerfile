@@ -40,4 +40,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 EXPOSE 8501
 
 # 6. Start Streamlit app
-CMD ["micromamba", "run", "-n", "agentics", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["micromamba", "run", "-n", "agentics", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.baseUrlPath=/agenticsenergy-streamlit"]
