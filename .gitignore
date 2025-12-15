@@ -24,7 +24,6 @@ env/
 .ipynb_checkpoints
 
 #Large Data
-*.csv
 *.tsv
 *.json
 *.jsonl

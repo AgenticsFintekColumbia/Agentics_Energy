@@ -87,24 +87,23 @@ class HeuristicTrader:
         discharge_windows: List[Tuple[int, int]],
     ) -> SolveResponse:
 
-        n = len(day.prices_buy)
-        if len(day.demand_MW) != n:
-            raise ValueError("prices_buy and demand_MW must have the same length")
-        if day.prices_sell is not None and len(day.prices_sell) != n:
-            raise ValueError("prices_sell length must match prices_buy when provided")
+        n = len(day.prices_buy_forecast)
+        if len(day.demand_MW_forecast) != n:
+            raise ValueError("prices_buy_forecast and demand_MW_forecast must have the same length")
+        if day.prices_sell_forecast is not None and len(day.prices_sell_forecast) != n:
+            raise ValueError("prices_sell_forecast length must match prices_buy_forecast when provided")
         if day.dt_hours <= 0:
             raise ValueError("dt_hours must be > 0")
 
         # Inputs
-        p_buy = np.asarray(day.prices_buy, dtype=np.float64)
+        p_buy = np.asarray(day.prices_buy_forecast, dtype=np.float64)
         p_sell = (
-            np.asarray(day.prices_sell, dtype=np.float64)
-            if (day.allow_export and day.prices_sell is not None)
+            np.asarray(day.prices_sell_forecast, dtype=np.float64)
+            if (day.allow_export and day.prices_sell_forecast is not None)
             else p_buy if day.allow_export
             else np.zeros_like(p_buy)
         )
-        load = np.asarray(day.demand_MW, dtype=np.float64)
-
+        load = np.asarray(day.demand_MW_forecast, dtype=np.float64)
         # Battery params
         dt = float(day.dt_hours)
         C = float(bat.capacity_MWh)              # MWh
@@ -212,9 +211,9 @@ class HeuristicTrader:
         if not (0.0 <= low_q < high_q <= 1.0):
             raise ValueError("Require 0 <= low_q < high_q <= 1")
 
-        n = len(day.prices_buy)
-        if len(day.demand_MW) != n:
-            raise ValueError("prices_buy and demand_MW must have the same length")
+        n = len(day.prices_buy_forecast)
+        if len(day.demand_MW_forecast) != n:
+            raise ValueError("prices_buy_forecast and demand_MW_forecast must have the same length")
         if day.prices_sell is not None and len(day.prices_sell) != n:
             raise ValueError("prices_sell length must match prices_buy when provided")
         if day.dt_hours <= 0:
@@ -222,12 +221,12 @@ class HeuristicTrader:
 
         # Inputs
         dt = float(day.dt_hours)
-        prices = np.asarray(day.prices_buy, dtype=np.float64)
-        load = np.asarray(day.demand_MW, dtype=np.float64)
+        prices = np.asarray(day.prices_buy_forecast, dtype=np.float64)
+        load = np.asarray(day.demand_MW_forecast, dtype=np.float64)
         allow_export = bool(day.allow_export)
         p_sell = (
-            np.asarray(day.prices_sell, dtype=np.float64)
-            if (allow_export and day.prices_sell is not None)
+            np.asarray(day.prices_sell_forecast, dtype=np.float64)
+            if (allow_export and day.prices_sell_forecast is not None)
             else prices if allow_export
             else np.zeros_like(prices)
         )

@@ -76,6 +76,7 @@ class EnergyDataLoader:
                 "LSTM":  "Italy_data_forecast_LSTM.csv",
                 "NOISE": "Italy_data_forecast_NOISE.csv",
                 "RF":    "Italy_data_forecast_RF.csv",
+                "TLLM":  "Italy_data_forecast_TLLM.csv",
             },
             # Add other regions here if/when forecasts exist.
             # e.g., "CAISO": {"LSTM": "...", "NOISE": "...", "RF": "..."}
