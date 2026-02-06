@@ -66,7 +66,7 @@ class PrintCallbacks(DefaultCallbacks):
         self._recent_eval_means  = deque(maxlen=20)
         self._train_ep_count = 0
         self._eval_ep_count = 0
-        self._ep_print_every = 25
+        self._ep_print_every = 24
 
     def on_episode_end(self, *, worker, base_env, policies, episode, **kwargs):
         R = float(episode.total_reward)

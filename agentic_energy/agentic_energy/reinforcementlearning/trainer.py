@@ -11,10 +11,12 @@ from .logging import PrintCallbacks, setup_python_logging, make_logger_creator, 
 from .config import DEFAULT_SAVE_DIR, apply_process_env, ensure_dir, PPOTrainSettings
 
 def _env_creator(env_config):
+    # RLlib expects a function that takes a dict env_config and returns a new env instance.
+    # This function is what RLlib calls on each worker / runner to construct environments.
     return BatteryArbRLEnv(env_config)
 
 def _validate(settings: PPOTrainSettings):
-    if settings.rollout_fragment_length <= 0:
+    if settings.rollout_fragment_length <= 0: # You can’t collect 0 or negative rollout fragments.
         raise ValueError("rollout_fragment_length must be > 0")
     if settings.train_batch_size % settings.rollout_fragment_length != 0:
         raise ValueError(
@@ -56,6 +58,7 @@ def build_config(env_config, settings:PPOTrainSettings):
             num_epochs=settings.num_epochs,
             clip_param=settings.clip_param,
             vf_clip_param=settings.vf_clip_param,
+            # entropy_coeff=0.05,
         )
     )
 
